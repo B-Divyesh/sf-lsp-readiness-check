@@ -38,13 +38,11 @@ Local production build output is `dist/site/`; initial compressed JS is 4.88 kB 
 
 ## Deployment
 
-Deploy the committed build with:
+Deployed `dist/site/` to the existing `sf-lsp-readiness-check` Static Web App with `/opt/fleet/lib/deploy-static.sh lsp-readiness-check dist/site` (deployment `e89f05a0-7a05-47ee-b89a-6473a55d4929`). Live verification at `https://lsp-readiness-check.sociobot.in` passed:
 
-```sh
-/opt/fleet/lib/deploy-static.sh lsp-readiness-check dist/site
-```
-
-Then check `/`, `/demo`, `/privacy`, `/terms`, and an unknown path over the custom domain. The unknown path must return HTTP 404.
+- `/`, `/demo`, `/privacy`, and `/terms` return 200; an unknown route returns 404.
+- All five routes have one H1, zero serious/critical Axe violations at 390 px, no console errors, and no visible target under 44 px.
+- Factory URL verification passed in 602 ms with title, `lang=en`, main landmark, and image alt text present.
 
 ## Known gap
 
