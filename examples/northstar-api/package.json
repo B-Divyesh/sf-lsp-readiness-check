@@ -1,0 +1,5 @@
+{
+  "name": "northstar-api",
+  "private": true,
+  "scripts": { "test": "node --test" }
+}
