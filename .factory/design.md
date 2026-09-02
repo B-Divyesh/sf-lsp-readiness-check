@@ -39,8 +39,8 @@ On first view, a survey line draws once in 700ms and result rows enter from thei
 
 ## Asset plan and provenance
 
-- `site/public/topographic-survey.webp`: original generated editorial topographic terrain. Prompt: “An abstract topographic survey map of a code repository as layered terrain, precise rust contour lines on warm ivory archival paper, four small dark green survey markers connected by a thin route, subtle paper grain, flat screen-print editorial illustration, wide landscape composition, generous quiet areas, no letters, no numbers, no logos, no interface, no gradients, no watermark.” Generated on 2026-09-02 with `/opt/fleet/lib/gen-image.sh` using the factory image deployment. Converted locally to WebP; original prompt receipt is kept beside the source during generation and summarized here.
+- `site/public/topographic-survey.webp`: original generated editorial topographic terrain. Prompt: “An abstract topographic survey map of a code repository as layered terrain, precise rust contour lines on warm ivory archival paper, four small dark green survey markers connected by a thin route, subtle paper grain, flat screen-print editorial illustration, wide landscape composition, generous quiet areas, no letters, no numbers, no logos, no interface, no gradients, no watermark. Landing page hero background, polished editorial asset.” Generated on 2026-09-02 with `/opt/fleet/lib/gen-image.sh` using the factory image deployment. Converted locally to WebP; the exact prompt receipt is stored in `.factory/topographic-survey.prompt.json`.
 - `site/public/og-image.webp`: locally cropped and composed from the same original art, with no essential text embedded.
 - Contour dividers, wordmark mark, favicon, status marks, and route line: original inline SVG/CSS geometry authored for this product.
 
-All artwork is original to this repository. There are no stock assets or third-party runtime images.
+All artwork is original to this repository. There are no stock assets or third-party runtime images. Fraunces is self-hosted under the SIL Open Font License in `site/public/fonts/OFL.txt`.
