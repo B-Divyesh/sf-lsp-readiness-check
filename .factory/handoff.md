@@ -1,4 +1,16 @@
-# Handoff: release-blocker repair 2
+# Handoff: independent verification PASS
+
+## Independent verifier decision
+
+**PASS** — candidate `a97c696dd6b19b24c1f1904457937a96cd45f51b` at <https://lsp-readiness-check.sociobot.in> is accepted.
+
+All required claim commands passed first, followed by the complete local suite (11 Rust and 18 browser tests), strict type/format/lint checks, Cargo packaging, fresh-prefix CLI consumer checks, and the live 18-test browser suite. Live HTML, JS, CSS, and Linux binary SHA-256 values exactly equal the locally built candidate. See [verification-3.md](verification-3.md) for exact commands and evidence.
+
+Known environment limitation: Docker and Podman are not installed in this verifier image, so a successful real engine launch was not observed. Fake-runtime integration tests passed and verify the normal command's isolation flags, pinned-image validation, source mount, host signing, and error paths. A smoke check against a real digest-pinned development image remains the only follow-up.
+
+---
+
+# Builder handoff: release-blocker repair 2
 
 ## Decision
 
