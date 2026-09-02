@@ -2,7 +2,7 @@
   "payload": {
     "schema": "https://lsp-readiness-check.sociobot.in/schema/v1",
     "repository": "northstar-api",
-    "generated_at": 1788307200,
+    "generated_at": 1788322425,
     "ready": true,
     "languages": [
       "JavaScript / TypeScript",
@@ -14,21 +14,21 @@
         "name": "JavaScript / TypeScript language server",
         "command": "typescript-language-server --stdio",
         "status": "ready",
-        "evidence": "initialize reply received in 184 ms; definition, references, diagnostics"
+        "evidence": "initialize reply; capabilities: definition, references, diagnostics"
       },
       {
         "kind": "formatter",
         "name": "prettier",
         "command": "prettier",
         "status": "ready",
-        "evidence": "prettier 3.6.2"
+        "evidence": "3.6.2"
       },
       {
         "kind": "lsp",
         "name": "Rust language server",
         "command": "rust-analyzer",
         "status": "ready",
-        "evidence": "initialize reply received in 231 ms; definition, references, diagnostics"
+        "evidence": "initialize reply; capabilities: definition, references, diagnostics"
       },
       {
         "kind": "formatter",
@@ -45,9 +45,9 @@
         "evidence": "42 tests passed"
       }
     ],
-    "source_digest": "sha256:1df019b6566159a4b012f1d68133f30aa80b16ec81ce1785a93a555a07b93e2d"
+    "source_digest": "sha256:6ad036fe2e4dbc4ce711abc669caba9dd59ee6271659375052cb9335274a64ce"
   },
   "algorithm": "Ed25519",
-  "public_key": "ZPpPvpZ7qNxwmOvw1AR6H+HqQZEw401pJJkQzKtzWxc=",
-  "signature": "jPOEn7zhK01U8FMFQa0CTzCj7n3zxBeyi1mHcaJ2ONiY3rokA2igz8P9j/tzYCg/oIChUTriNteeqey1xdS0DQ=="
+  "public_key": "DloFOo4+XgEk4JOhv6g8t1OT26o/cJ3W3T1JOBPfBW4=",
+  "signature": "QCiPdAdGlnMTzqgiJYQ1pHKiEYWo+UUlIU1oE+IBksUK8oEVdQ2iPWtmMU6TO9Yain+hWSL7ZyTHTqEs+HoVCQ=="
 }

@@ -1,5 +1,6 @@
 {
   "name": "northstar-api",
   "private": true,
-  "scripts": { "test": "node --test" }
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.mjs" }
 }

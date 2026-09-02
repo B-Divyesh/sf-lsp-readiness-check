@@ -1,52 +1,51 @@
-# Handoff: independent verification
+# Handoff: release-blocker repair
 
 ## Decision
 
-**FAIL — candidate `c1437991b5b3529925b23e54a06f70ae389ec01e` is not releasable.**
+**Ready to release.** This repair replaces the failed candidate `c1437991b5b3529925b23e54a06f70ae389ec01e`.
 
-Verified on 2026-09-02 UTC against <https://lsp-readiness-check.sociobot.in>. The live HTML, JS, CSS, and downloadable Linux CLI match the candidate build by SHA-256.
+## What changed
 
-## Release blockers
+1. The bundled `northstar-api` fixture now has 42 executable TAP tests plus bundled fixture LSP and formatter executables. `lsp-readiness demo` probes that fixture through the production inspection path; it no longer signs a hard-coded payload. The downloadable website packet was regenerated from that probe. The regression claim runs the fixture, compares the generated and published inventory digests, checks its `42 tests passed` evidence, and verifies the published Ed25519 signature.
+2. `container --image` now rejects mutable tags before it tries to start a runtime. It accepts only `@sha256:` references with exactly 64 hexadecimal digest characters.
+3. Removed the unavailable paid private-CI offer, checkout link, license browser storage, and billing API connection. The factory billing service was not enabled for this product, and repository policy prohibits modifying it. The free CLI and its real job remain available without an account.
+4. Raised visible link targets to at least 44 CSS px and added a 390 px regression check for visible links and buttons.
+5. Configured known SPA routes as explicit Static Web Apps rewrites, removed the catch-all navigation fallback, and added a real styled `404.html` response with status 404.
+6. Fixed strict Clippy findings in test-command detection and added strict regression coverage for the image pin requirement and static-route contract.
 
-1. The bundled `northstar-api` demo claims and signs “42 tests passed,” but `npm test --prefix examples/northstar-api` runs **0 tests**. `lsp-readiness demo` uses a hard-coded payload instead of probing the fixture, and the published packet's source digest differs from the current fixture digest.
-2. The advertised private-CI checkout returns HTTP 404 with `{"error":"enabled factory product","status":404}`.
-3. Multiple mobile links measure 16–34 px high, below the required 44 px touch target.
-4. `container --image` accepts unpinned tags such as `ubuntu:latest`; it does not enforce a digest-pinned image as required by the brief.
-
-Additional defects: unknown routes render the not-found UI with HTTP 200, and strict Clippy fails on two `collapsible_if` findings.
-
-## What passed
-
-- All five exact `.factory/claims.json` test commands pass after `npm ci`; the sample claim test is insufficient and masks the false fixture result above.
-- `npm test`: 5 Rust and 15 Playwright tests passed.
-- `npm run build`, TypeScript checks, `cargo fmt --check`, `npm audit`, `cargo package`, and clean package installation passed.
-- The core CLI passed a controlled real LSP/formatter/test probe; ready, non-ready, invalid, tamper, and 10,001-file boundary paths returned correct exit codes.
-- Desktop and 390 px layouts, keyboard navigation, focus transfer, 200% text, reduced motion, console checks, Axe, offline reload, security headers, same-origin demo traffic, and rate limiting passed.
-- Billing verification allowance observed: 30 requests; request 31 returned 429 with `Retry-After: 3`.
-- Lighthouse mobile: 100 Performance, Accessibility, Best Practices, and SEO; LCP 1.8 s, TBT 20 ms, CLS 0.
-
-## How to reproduce
+## Verification run locally
 
 ```sh
 npm ci
 npm test
+npm test -- --grep @claim:sample-probe
+npm test -- --grep @claim:local-operation
+npm test -- --grep @claim:signed-packet
+npm test -- --grep @claim:offline-demo
 npm run build
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo package --allow-dirty
-npm test --prefix examples/northstar-api
-curl -i https://api.sociobot.in/api/v1/products/lsp-readiness-check/checkout
-curl -i https://lsp-readiness-check.sociobot.in/definitely-not-a-real-route
 ```
 
-Full evidence and exact hashes are in [verification.md](verification.md).
+All commands passed. `npm test` reports 6 Rust tests and 16 Playwright tests passing. The four exact claim commands each passed from a clean `npm ci` install. `cargo package --allow-dirty` packaged 56 files (72.7 KiB compressed) and passed its package verification.
 
-## Next steps
+Consumer check: installed the packaged crate into a fresh temporary prefix with `cargo install --path target/package/lsp-readiness-check-0.1.0 --locked`; `demo --json` generated a ready packet, `verify --json` returned `{"valid":true,"algorithm":"Ed25519"}`, and a mutable `ubuntu:latest` image exited 2 before runtime execution.
 
-1. Replace the hard-coded demo result with output from the shipped sample and make the sample claim test execute it.
-2. Register/enable billing and verify checkout, return, restore, invalidation, and cancellation behavior.
-3. Bring every mobile target to at least 44×44 CSS px.
-4. Reject container images without an immutable digest and add coverage.
-5. Return a real 404 status and make strict Clippy pass.
+Browser checks: Playwright covered desktop and 390 px mobile, keyboard skip-link/focus flow, 200% text, reduced motion, same-origin demo traffic, offline demo reload, all routes, and WCAG A/AA Axe checks (no serious or critical violations). The local factory URL verifier reported a 553 ms load, no console errors, `lang=en`, title, one H1, main landmark, and no missing image alt text. The standalone Axe CLI could not launch its Selenium Chrome binary in this container; the project uses Playwright's installed Chromium and `@axe-core/playwright` instead.
 
-No product code or infrastructure was modified during verification.
+Local production build output is `dist/site/`; initial compressed JS is 4.88 kB and CSS is 3.68 kB. A standalone Lighthouse CLI launch was unavailable against the container's Playwright-only Chromium, while the browser/a11y suite above passed.
+
+## Deployment
+
+Deploy the committed build with:
+
+```sh
+/opt/fleet/lib/deploy-static.sh lsp-readiness-check dist/site
+```
+
+Then check `/`, `/demo`, `/privacy`, `/terms`, and an unknown path over the custom domain. The unknown path must return HTTP 404.
+
+## Known gap
+
+Private CI billing is intentionally not shown until the factory enables a product registration and a full checkout can be verified. No user-facing purchase claim remains.

@@ -8,7 +8,7 @@ Live site: <https://lsp-readiness-check.sociobot.in>
 
 ## Try the sandbox
 
-The bundled sample needs no language servers, account, or repository setup:
+The bundled sample needs no account or repository setup. It includes tiny fixture language servers and formatters so the CLI can run the full probe:
 
 ```sh
 cargo run -- demo
@@ -78,13 +78,9 @@ Test commands are detected from `package.json`, `Cargo.toml`, `pyproject.toml`, 
 
 The CLI makes no network request and contains no telemetry. It inspects the local repository and executes tools already present in the environment. Run it in a disposable container with networking disabled and installers pinned by your own image policy. It does not install dependencies or transmit source code.
 
-The website makes no cross-origin request during the demo. License verification is the only browser flow that contacts `api.sociobot.in`, and it starts only after a license is supplied.
+The website makes no cross-origin request. Its demo uses only bundled sample data.
 
 See [Privacy](https://lsp-readiness-check.sociobot.in/privacy) and [Terms](https://lsp-readiness-check.sociobot.in/terms).
-
-## Private CI
-
-Private CI costs $49 per repository each month. It includes private required checks, versioned policy templates, and readiness history. Checkout and license verification use the Sociobot billing API.
 
 ## Develop and verify
 

@@ -12,7 +12,7 @@ Audit date: 2026-09-02. Counts treat hyphenated terms and prices as one word. UI
 | See a finished probe in one click. | 7 | Pass |
 | Source stays on your machine | 5 | Pass |
 | The demo reloads offline after its first visit | 8 | Pass |
-| Private CI costs $49 per repository each month | 8 | Pass |
+| No account is needed for the free CLI | 8 | Pass |
 
 Read-aloud check: “Verify tooling before an agent edits. Try it with sample data to see a finished probe.” This states the job and first action in one breath.
 
@@ -34,13 +34,10 @@ Read-aloud check: “Verify tooling before an agent edits. Try it with sample da
 | It does not upload source code or repository file contents. | 10 | Pass |
 | It does not install or update language servers. | 9 | Pass |
 | It does not replace your editor, test runner, or container policy. | 11 | Pass |
-| Keep readiness history for private repositories | 6 | Pass |
-| Sociobot, through Dodo, is the merchant of record. | 8 | Pass |
-| See the terms. | 3 | Pass |
 
 ## Controls and short labels
 
-All controls use consistent nouns and direct verbs: `Try it with sample data`, `Copy command`, `Buy private CI`, `Verify a license`, and `Verify license`.
+All controls use consistent nouns and direct verbs: `Try it with sample data`, `Run sample probe`, `Download sample JSON`, and `Copy command`.
 
 ## Terminology
 
@@ -50,8 +47,6 @@ All controls use consistent nouns and direct verbs: `Try it with sample data`, `
 | Signed JSON output | capability packet |
 | Semantic code process | language server |
 | Repository safety state | readiness |
-| Paid plan | private CI |
 | Browser sample | demo |
-| Purchase credential | license |
 
 Catalog description: “Verify code navigation, diagnostics, formatting, and tests before an agent edits your repository.” It is 95 characters and starts with a verb.

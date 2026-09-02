@@ -26,12 +26,5 @@
     "where": "landing facts, README",
     "test": "npm test -- --grep @claim:offline-demo",
     "sandbox": "new browser context; visit /demo, await service worker, set offline, reload"
-  },
-  {
-    "id": "private-ci-price",
-    "claim": "Private CI costs $49 per repository each month and includes required checks, policy templates, and readiness history.",
-    "where": "landing facts, pricing, terms, README",
-    "test": "npm test -- --grep @claim:private-ci-price",
-    "sandbox": "fresh browser context at /#pricing; assert price, included work, and hosted checkout URL"
   }
 ]

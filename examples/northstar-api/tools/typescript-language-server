@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+process.stdin.once('data', () => {
+  const body = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    result: { capabilities: { definitionProvider: true, referencesProvider: true, textDocumentSync: 2 } },
+  });
+  process.stdout.write(`Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`);
+});

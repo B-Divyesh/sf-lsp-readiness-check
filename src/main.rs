@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use lsp_readiness_check::{
-    CheckStatus, SignedPacket, demo_payload, inspect_repository, load_or_create_signing_key, sign,
-    verify,
+    CheckStatus, SignedPacket, inspect_demo_fixture, inspect_repository,
+    load_or_create_signing_key, sign, verify,
 };
 use std::{
     fs,
@@ -124,7 +124,7 @@ fn run() -> Result<ExitCode> {
                 std::env::temp_dir().join(format!("lsp-readiness-demo-{}", std::process::id()));
             fs::create_dir_all(&dir)?;
             let key = load_or_create_signing_key(&dir.join("signing.key"))?;
-            let packet = sign(demo_payload(), &key)?;
+            let packet = sign(inspect_demo_fixture()?, &key)?;
             let output = dir.join("lsp-readiness.json");
             fs::write(
                 &output,
@@ -170,6 +170,7 @@ fn run_container(
     skip_tests: bool,
     json: bool,
 ) -> Result<ExitCode> {
+    validate_pinned_image(image)?;
     let repository = path
         .canonicalize()
         .with_context(|| format!("cannot open {}", path.display()))?;
@@ -253,6 +254,22 @@ fn run_container(
     })
 }
 
+fn validate_pinned_image(image: &str) -> Result<()> {
+    let Some((_, digest)) = image.rsplit_once("@sha256:") else {
+        anyhow::bail!(
+            "container image must use an immutable sha256 digest, for example ghcr.io/team/dev@sha256:<64-hex-digest>"
+        );
+    };
+    if digest.len() != 64
+        || !digest
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
+    {
+        anyhow::bail!("container image must use a 64-character sha256 digest");
+    }
+    Ok(())
+}
+
 fn print_report(packet: &SignedPacket) {
     println!("LSP READINESS / {}", packet.payload.repository);
     println!(
@@ -276,4 +293,19 @@ fn print_report(packet: &SignedPacket) {
         );
     }
     println!("Signature: Ed25519 / {}…", &packet.public_key[..12]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_pinned_image;
+
+    #[test]
+    fn container_image_requires_an_immutable_sha256_digest() {
+        assert!(validate_pinned_image("ubuntu:latest").is_err());
+        assert!(validate_pinned_image("ghcr.io/acme/dev@sha256:not-a-digest").is_err());
+        assert!(validate_pinned_image(
+            "ghcr.io/acme/dev@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )
+        .is_ok());
+    }
 }

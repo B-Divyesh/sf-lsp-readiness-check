@@ -17,7 +17,18 @@ test('landing explains the job and opens the sample in one click', async ({ page
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
 });
 
-test('@claim:sample-probe the demo shows navigation, formatting, tests, and a signed packet', async ({ page }) => {
+test('@claim:sample-probe the shipped fixture runs 42 tests and produces the displayed signed packet', async ({ page }) => {
+  const binary = join(process.cwd(), 'target/release/lsp-readiness');
+  const fixtureTests = await exec('npm', ['test', '--prefix', 'examples/northstar-api']);
+  expect(fixtureTests.stdout).toContain('# pass 42');
+  const generated = JSON.parse((await exec(binary, ['demo', '--json'])).stdout);
+  const published = JSON.parse(await readFile(join(process.cwd(), 'site/public/sample/northstar-api.lsp-readiness.json'), 'utf8'));
+  expect(generated.payload.ready).toBe(true);
+  expect(generated.payload.source_digest).toBe(published.payload.source_digest);
+  expect(generated.payload.capabilities).toEqual(expect.arrayContaining([
+    expect.objectContaining({ kind: 'tests', status: 'ready', evidence: '42 tests passed' }),
+  ]));
+  await exec(binary, ['verify', join(process.cwd(), 'site/public/sample/northstar-api.lsp-readiness.json'), '--json']);
   await page.goto('/demo');
   await page.getByRole('button', { name: 'Run sample probe' }).click();
   await expect(page.locator('#terminal-output')).toContainText('READY — agent edits may start');
@@ -26,6 +37,12 @@ test('@claim:sample-probe the demo shows navigation, formatting, tests, and a si
   await expect(page.locator('#terminal-output')).toContainText('42 tests passed');
   await expect(page.locator('#terminal-output')).toContainText('Signature: Ed25519');
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['demo:lsp-readiness-check']);
+});
+
+test('container rejects a mutable image before starting a runtime', async () => {
+  const binary = join(process.cwd(), 'target/release/lsp-readiness');
+  await expect(exec(binary, ['container', '.', '--image', 'ubuntu:latest', '--runtime', 'definitely-not-a-container-runtime']))
+    .rejects.toMatchObject({ stderr: expect.stringContaining('immutable sha256 digest') });
 });
 
 test('@claim:local-operation the CLI has no network client and the demo makes no cross-origin request', async ({ page }) => {
@@ -71,20 +88,10 @@ test('@claim:offline-demo the demo reloads offline after the first visit', async
   await context.close();
 });
 
-test('@claim:private-ci-price the plan states its price and included work', async ({ page }) => {
-  await page.goto('/#pricing');
-  const pricing = page.locator('#pricing');
-  await expect(pricing).toContainText('$49 per repository each month');
-  await expect(pricing).toContainText('Required checks for private CI');
-  await expect(pricing.getByRole('link', { name: /Buy private CI/ })).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/lsp-readiness-check/checkout');
-});
-
-test('a returned license is stored, verified, and removed from the URL', async ({ page }) => {
-  await page.route('https://api.sociobot.in/api/v1/products/lsp-readiness-check/verify?license=test-license', (route) => route.fulfill({ json: { valid: true, reason: 'ok', expires_at: null } }));
-  await page.goto('/?license=test-license');
-  await expect(page).toHaveURL('http://127.0.0.1:4173/');
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('sb_license:lsp-readiness-check'))).toBe('test-license');
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('sb_license_verdict:lsp-readiness-check') ?? '{}').valid)).toBe(true);
+test('the unavailable paid offer and billing endpoint are not presented', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Buy private CI')).toHaveCount(0);
+  await expect(page.locator('a[href*="api.sociobot.in"]')).toHaveCount(0);
 });
 
 for (const route of ['/', '/demo', '/privacy', '/terms', '/does-not-exist']) {
@@ -126,4 +133,21 @@ test('mobile layout stays within the viewport', async ({ page }) => {
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(390);
   await expect(page.getByRole('link', { name: 'Try it with sample data' })).toBeVisible();
+  const undersized = await page.locator('a, button').evaluateAll((elements) => elements
+    .map((element) => ({ label: element.textContent?.trim(), rect: element.getBoundingClientRect() }))
+    .filter(({ rect }) => rect.width > 0 && rect.height > 0 && (rect.width < 44 || rect.height < 44)));
+  expect(undersized).toEqual([]);
+});
+
+test('static hosting routes known pages through the app and returns a real 404 otherwise', async () => {
+  const config = JSON.parse(await readFile(join(process.cwd(), 'site/public/staticwebapp.config.json'), 'utf8'));
+  expect(config.routes).toEqual(expect.arrayContaining([
+    expect.objectContaining({ route: '/demo', rewrite: '/index.html' }),
+    expect.objectContaining({ route: '/privacy', rewrite: '/index.html' }),
+    expect.objectContaining({ route: '/terms', rewrite: '/index.html' }),
+  ]));
+  expect(config.navigationFallback).toBeUndefined();
+  expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html', statusCode: 404 });
+  const notFound = await readFile(join(process.cwd(), 'site/public/404.html'), 'utf8');
+  expect(notFound).not.toContain('http-equiv="refresh"');
 });

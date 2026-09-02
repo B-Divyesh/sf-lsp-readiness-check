@@ -101,6 +101,14 @@ const LANGUAGE_SPECS: &[LanguageSpec] = &[
 ];
 
 pub fn inspect_repository(path: &Path, run_tests: bool) -> Result<ProbePayload> {
+    inspect_repository_with_tools(path, run_tests, None)
+}
+
+fn inspect_repository_with_tools(
+    path: &Path,
+    run_tests: bool,
+    tools_dir: Option<&Path>,
+) -> Result<ProbePayload> {
     let root = path
         .canonicalize()
         .with_context(|| format!("cannot open {}", path.display()))?;
@@ -118,8 +126,8 @@ pub fn inspect_repository(path: &Path, run_tests: bool) -> Result<ProbePayload> 
                 .is_some_and(|ext| spec.extensions.contains(&ext))
         }) {
             languages.push(spec.name.to_string());
-            capabilities.push(probe_lsp(&root, spec));
-            capabilities.push(probe_executable("formatter", spec.formatter));
+            capabilities.push(probe_lsp(&root, spec, tools_dir));
+            capabilities.push(probe_executable("formatter", spec.formatter, tools_dir));
         }
     }
 
@@ -171,57 +179,13 @@ fn all_required_ready(languages: &[String], capabilities: &[Capability]) -> bool
             .all(|capability| capability.status == CheckStatus::Ready)
 }
 
-pub fn demo_payload() -> ProbePayload {
-    ProbePayload {
-        schema: SCHEMA.into(),
-        repository: "northstar-api".into(),
-        generated_at: 1_788_307_200,
-        ready: true,
-        languages: vec!["JavaScript / TypeScript".into(), "Rust".into()],
-        capabilities: vec![
-            Capability {
-                kind: "lsp".into(),
-                name: "JavaScript / TypeScript language server".into(),
-                command: "typescript-language-server --stdio".into(),
-                status: CheckStatus::Ready,
-                evidence:
-                    "initialize reply received in 184 ms; definition, references, diagnostics"
-                        .into(),
-            },
-            Capability {
-                kind: "formatter".into(),
-                name: "prettier".into(),
-                command: "prettier".into(),
-                status: CheckStatus::Ready,
-                evidence: "prettier 3.6.2".into(),
-            },
-            Capability {
-                kind: "lsp".into(),
-                name: "Rust language server".into(),
-                command: "rust-analyzer".into(),
-                status: CheckStatus::Ready,
-                evidence:
-                    "initialize reply received in 231 ms; definition, references, diagnostics"
-                        .into(),
-            },
-            Capability {
-                kind: "formatter".into(),
-                name: "rustfmt".into(),
-                command: "rustfmt".into(),
-                status: CheckStatus::Ready,
-                evidence: "rustfmt 1.8.0-stable".into(),
-            },
-            Capability {
-                kind: "tests".into(),
-                name: "Repository tests".into(),
-                command: "npm test".into(),
-                status: CheckStatus::Ready,
-                evidence: "42 tests passed".into(),
-            },
-        ],
-        source_digest: "sha256:1df019b6566159a4b012f1d68133f30aa80b16ec81ce1785a93a555a07b93e2d"
-            .into(),
-    }
+/// Probe the bundled `northstar-api` fixture through the same code path used
+/// for customer repositories. Its small executable tools live beside the
+/// fixture so the demo never depends on the host machine's toolchain.
+pub fn inspect_demo_fixture() -> Result<ProbePayload> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/northstar-api");
+    let tools = root.join("tools");
+    inspect_repository_with_tools(&root, true, Some(&tools))
 }
 
 pub fn load_or_create_signing_key(path: &Path) -> Result<SigningKey> {
@@ -326,16 +290,21 @@ fn is_relevant(path: &Path) -> bool {
         .is_some_and(|ext| LANGUAGE_SPECS.iter().any(|s| s.extensions.contains(&ext)))
 }
 
-fn executable_path(command: &str) -> Option<PathBuf> {
-    env::var_os("PATH").and_then(|paths| {
-        env::split_paths(&paths)
-            .map(|p| p.join(command))
-            .find(|p| p.is_file())
-    })
+fn executable_path(command: &str, tools_dir: Option<&Path>) -> Option<PathBuf> {
+    tools_dir
+        .map(|dir| dir.join(command))
+        .filter(|path| path.is_file())
+        .or_else(|| {
+            env::var_os("PATH").and_then(|paths| {
+                env::split_paths(&paths)
+                    .map(|p| p.join(command))
+                    .find(|p| p.is_file())
+            })
+        })
 }
 
-fn probe_executable(kind: &str, command: &str) -> Capability {
-    let Some(path) = executable_path(command) else {
+fn probe_executable(kind: &str, command: &str, tools_dir: Option<&Path>) -> Capability {
+    let Some(path) = executable_path(command, tools_dir) else {
         return Capability {
             kind: kind.into(),
             name: command.into(),
@@ -390,12 +359,12 @@ fn probe_executable(kind: &str, command: &str) -> Capability {
     }
 }
 
-fn probe_lsp(root: &Path, spec: &LanguageSpec) -> Capability {
+fn probe_lsp(root: &Path, spec: &LanguageSpec, tools_dir: Option<&Path>) -> Capability {
     let command_label = std::iter::once(spec.server)
         .chain(spec.server_args.iter().copied())
         .collect::<Vec<_>>()
         .join(" ");
-    let Some(path) = executable_path(spec.server) else {
+    let Some(path) = executable_path(spec.server, tools_dir) else {
         return Capability {
             kind: "lsp".into(),
             name: format!("{} language server", spec.name),
@@ -554,18 +523,15 @@ fn read_lsp_reply(reader: impl Read) -> Result<serde_json::Value> {
 }
 
 fn detect_test_command(root: &Path) -> Option<String> {
-    if root.join("package.json").exists() {
-        if let Ok(value) =
+    if root.join("package.json").exists()
+        && let Ok(value) =
             serde_json::from_slice::<serde_json::Value>(&fs::read(root.join("package.json")).ok()?)
-        {
-            if value
-                .pointer("/scripts/test")
-                .and_then(|v| v.as_str())
-                .is_some_and(|v| !v.contains("no test specified"))
-            {
-                return Some("npm test".into());
-            }
-        }
+        && value
+            .pointer("/scripts/test")
+            .and_then(|v| v.as_str())
+            .is_some_and(|v| !v.contains("no test specified"))
+    {
+        return Some("npm test".into());
     }
     if root.join("Cargo.toml").exists() {
         return Some("cargo test".into());
@@ -582,7 +548,13 @@ fn detect_test_command(root: &Path) -> Option<String> {
 fn run_test_command(root: &Path, command: &str) -> Capability {
     let mut parts = command.split_whitespace();
     let binary = parts.next().unwrap_or(command);
-    let mut child = match Command::new(binary).args(parts).current_dir(root).spawn() {
+    let mut child = match Command::new(binary)
+        .args(parts)
+        .current_dir(root)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+    {
         Ok(child) => child,
         Err(error) => {
             return Capability {
@@ -594,6 +566,18 @@ fn run_test_command(root: &Path, command: &str) -> Capability {
             };
         }
     };
+    let stdout = child.stdout.take().expect("piped stdout");
+    let stderr = child.stderr.take().expect("piped stderr");
+    let stdout_reader = thread::spawn(move || {
+        let mut output = Vec::new();
+        let _ = BufReader::new(stdout).read_to_end(&mut output);
+        output
+    });
+    let stderr_reader = thread::spawn(move || {
+        let mut output = Vec::new();
+        let _ = BufReader::new(stderr).read_to_end(&mut output);
+        output
+    });
     let started = Instant::now();
     let status = loop {
         match child.try_wait() {
@@ -609,13 +593,18 @@ fn run_test_command(root: &Path, command: &str) -> Capability {
             Err(error) => break Err(error.to_string()),
         }
     };
+    let output = [
+        stdout_reader.join().unwrap_or_default(),
+        stderr_reader.join().unwrap_or_default(),
+    ]
+    .concat();
     match status {
         Ok(status) if status.success() => Capability {
             kind: "tests".into(),
             name: "Repository tests".into(),
             command: command.into(),
             status: CheckStatus::Ready,
-            evidence: "test command passed".into(),
+            evidence: test_evidence(&output),
         },
         Ok(status) => Capability {
             kind: "tests".into(),
@@ -632,6 +621,19 @@ fn run_test_command(root: &Path, command: &str) -> Capability {
             evidence: error,
         },
     }
+}
+
+fn test_evidence(output: &[u8]) -> String {
+    let output = String::from_utf8_lossy(output);
+    for line in output.lines() {
+        let line = line.trim();
+        if let Some(count) = line.strip_prefix("# pass ")
+            && count.chars().all(|character| character.is_ascii_digit())
+        {
+            return format!("{count} tests passed");
+        }
+    }
+    "test command passed".into()
 }
 
 fn digest_inventory(root: &Path, files: &[PathBuf]) -> Result<String> {
@@ -651,7 +653,7 @@ mod tests {
     #[test]
     fn packet_signature_verifies_and_detects_changes() {
         let key = SigningKey::generate(&mut OsRng);
-        let mut packet = sign(demo_payload(), &key).unwrap();
+        let mut packet = sign(inspect_demo_fixture().unwrap(), &key).unwrap();
         verify(&packet).unwrap();
         packet.payload.repository = "changed".into();
         assert!(verify(&packet).is_err());
@@ -667,12 +669,18 @@ mod tests {
     }
 
     #[test]
-    fn demo_has_each_required_capability() {
-        let packet = demo_payload();
+    fn bundled_demo_is_probed_and_has_each_required_capability() {
+        let packet = inspect_demo_fixture().unwrap();
         assert!(packet.ready);
         for kind in ["lsp", "formatter", "tests"] {
             assert!(packet.capabilities.iter().any(|cap| cap.kind == kind));
         }
+        assert!(
+            packet
+                .capabilities
+                .iter()
+                .any(|cap| cap.kind == "tests" && cap.evidence == "42 tests passed")
+        );
     }
 
     #[test]
@@ -685,7 +693,7 @@ mod tests {
 
     #[test]
     fn readiness_requires_formatters_and_executed_tests() {
-        let mut packet = demo_payload();
+        let mut packet = inspect_demo_fixture().unwrap();
         assert!(all_required_ready(&packet.languages, &packet.capabilities));
         packet.capabilities[1].status = CheckStatus::Missing;
         assert!(!all_required_ready(&packet.languages, &packet.capabilities));
