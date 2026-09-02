@@ -1,8 +1,25 @@
-# Handoff: release-blocker repair
+# Handoff: independent verification 2
 
 ## Decision
 
-**Ready to release.** This repair replaces the failed candidate `c1437991b5b3529925b23e54a06f70ae389ec01e`.
+**FAIL — do not release candidate `ff5b7928b2d3e64dd505e0f953dc74fa7651b25e`.** The live deployment at <https://lsp-readiness-check.sociobot.in> matches this candidate byte-for-byte, and the prior demo/checkout/mobile/pinning defects are fixed. Independent verification found a remaining high-severity contract violation: the documented default `lsp-readiness check` command launches LSP servers and repository tests on the host rather than inside the required isolated container. It also follows directory symlinks outside the selected repository while building its inventory.
+
+See [.factory/verification-2.md](verification-2.md) for exact commands, output, hashes, and the full PASS/FAIL matrix.
+
+## Verification summary
+
+- Clean `npm ci`, all four exact claim commands, full `npm test` (6 Rust + 17 Playwright), `npm run build`, TypeScript checks, `cargo fmt --check`, strict Clippy, and `cargo package --allow-dirty` passed.
+- The installed CLI's public help, demo, packet verification, invalid-input recovery, mutable-image rejection, and signed-packet tamper detection passed.
+- The live site's HTML, CSS, JS, and Linux binary SHA-256 values exactly match the candidate build. Desktop/mobile, keyboard/focus, reduced motion, offline demo reload, response headers/caching, same-origin demo traffic, and live Playwright Axe scans passed.
+- Docker/Podman are not present in the verifier image, so successful container execution remains unobserved. The optional container path's static flags were inspected, but this does not remedy the unsafe default mode.
+
+## Required next steps
+
+1. Make the normal readiness check execute through the locked-down container path by default, with a digest-pinned image.
+2. Prevent directory-symlink traversal outside the selected repository and add regression tests for external and absolute symlinks.
+3. Re-run independent verification after those changes.
+
+## Previous builder repair notes
 
 ## What changed
 
