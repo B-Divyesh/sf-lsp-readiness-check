@@ -1,0 +1,23 @@
+{
+  "name": "lsp-readiness-check-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config site/vite.config.ts",
+    "build:site": "cargo build --release && vite build --config site/vite.config.ts && node scripts/copy-binary.mjs",
+    "build": "npm run build:site",
+    "typecheck": "tsc --noEmit -p site/tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
+    "test": "npm run build && npm run typecheck && cargo test && playwright test",
+    "test:site": "playwright test",
+    "preview": "vite preview --config site/vite.config.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.58.2",
+    "@types/node": "24.3.0",
+    "playwright-core": "1.58.2",
+    "typescript": "5.9.2",
+    "vite": "7.3.6"
+  }
+}

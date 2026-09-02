@@ -1,0 +1,16 @@
+{
+  "routes": [
+    { "route": "/assets/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
+    { "route": "/fonts/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
+    { "route": "/*.webp", "headers": { "Cache-Control": "public, max-age=604800" } }
+  ],
+  "navigationFallback": { "rewrite": "/index.html", "exclude": ["/assets/*", "/sample/*", "/*.{css,js,png,jpg,webp,svg,woff2,xml,txt,json}"] },
+  "responseOverrides": { "404": { "rewrite": "/404.html" } },
+  "globalHeaders": {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; font-src 'self'; connect-src 'self' https://api.sociobot.in; object-src 'none'; base-uri 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()"
+  },
+  "mimeTypes": { ".webmanifest": "application/manifest+json" }
+}

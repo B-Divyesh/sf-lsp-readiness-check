@@ -1,0 +1,53 @@
+{
+  "payload": {
+    "schema": "https://lsp-readiness-check.sociobot.in/schema/v1",
+    "repository": "northstar-api",
+    "generated_at": 1788307200,
+    "ready": true,
+    "languages": [
+      "JavaScript / TypeScript",
+      "Rust"
+    ],
+    "capabilities": [
+      {
+        "kind": "lsp",
+        "name": "JavaScript / TypeScript language server",
+        "command": "typescript-language-server --stdio",
+        "status": "ready",
+        "evidence": "initialize reply received in 184 ms; definition, references, diagnostics"
+      },
+      {
+        "kind": "formatter",
+        "name": "prettier",
+        "command": "prettier",
+        "status": "ready",
+        "evidence": "prettier 3.6.2"
+      },
+      {
+        "kind": "lsp",
+        "name": "Rust language server",
+        "command": "rust-analyzer",
+        "status": "ready",
+        "evidence": "initialize reply received in 231 ms; definition, references, diagnostics"
+      },
+      {
+        "kind": "formatter",
+        "name": "rustfmt",
+        "command": "rustfmt",
+        "status": "ready",
+        "evidence": "rustfmt 1.8.0-stable"
+      },
+      {
+        "kind": "tests",
+        "name": "Repository tests",
+        "command": "npm test",
+        "status": "ready",
+        "evidence": "42 tests passed"
+      }
+    ],
+    "source_digest": "sha256:1df019b6566159a4b012f1d68133f30aa80b16ec81ce1785a93a555a07b93e2d"
+  },
+  "algorithm": "Ed25519",
+  "public_key": "ZPpPvpZ7qNxwmOvw1AR6H+HqQZEw401pJJkQzKtzWxc=",
+  "signature": "jPOEn7zhK01U8FMFQa0CTzCj7n3zxBeyi1mHcaJ2ONiY3rokA2igz8P9j/tzYCg/oIChUTriNteeqey1xdS0DQ=="
+}
