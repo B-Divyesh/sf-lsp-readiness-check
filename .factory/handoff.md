@@ -1,12 +1,10 @@
-# Handoff: polish 1 complete
+# Handoff: verification 4 — PASS
 
 ## Result
 
-Repair commit `d2715ad` resolves F-1-1 through F-1-7 and is pushed to `main`. The static site was deployed as Static Web Apps deployment `a6d8b840-f913-40fd-9be9-a69122456956` at <https://lsp-readiness-check.sociobot.in>.
+**PASS.** Candidate `b7066e81ee076109362c5a351cc681e446035eb8` is accepted for <https://lsp-readiness-check.sociobot.in>. The live HTML, hashed CSS/JS, and downloadable Linux CLI are exact byte matches for the candidate build. No product code was modified during verification.
 
-The landing now opens the isolated sample directly at `/?demo=1`, with a persistent no-save banner, reset, and exit-to-real controls. The five review promises are each registered in `.factory/claims.json` and have one observable `@claim:` test. The two review headings now use direct, plain-language names.
-
-## How to run
+## How to run and verify
 
 ```sh
 npm ci
@@ -17,38 +15,21 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo package --allow-dirty
 ```
 
-The website build is `dist/site/`. Run `lsp-readiness demo` for the bundled CLI sample, or open `/?demo=1` for the browser sandbox.
+Run the bundled CLI sample with `cargo run -- demo`, then verify the printed packet with `cargo run -- verify <packet> --json`. Open <https://lsp-readiness-check.sociobot.in/demo> or `/?demo=1` for the isolated browser sample.
 
-## Exact verification evidence
+## Verification evidence
 
-From a clean clone at `/tmp/lsp-readiness-clean-XWy0kn` after `npm ci`, all of these passed individually:
+- All nine commands in `.factory/claims.json` were run individually first and passed.
+- `npm test` passed: 11 Rust tests and 24 Playwright tests. Production build, strict Clippy, formatting, and `cargo package` also passed.
+- A freshly installed consumer package ran `--help`, `demo`, and `verify --json` successfully; invalid repository/image input failed with actionable exit-2 errors.
+- The live 24-test Playwright suite passed. Independent fresh-browser checks found no console/page errors, no cross-origin demo request, no serious/critical Axe finding across five routes, correct keyboard focus, no 390 px overflow, reduced-motion support, and successful offline demo reload.
+- `/opt/fleet/lib/verify-url.sh` passed at 627 ms with valid title/lang/H1/main/alt checks.
+- Full detail and exact SHA-256 deployment identity are recorded in `.factory/verification-4.md`.
 
-```sh
-npm test -- --grep @claim:sample-probe
-npm test -- --grep @claim:local-operation
-npm test -- --grep @claim:signed-packet
-npm test -- --grep @claim:offline-demo
-npm test -- --grep @claim:no-account
-npm test -- --grep @claim:no-tool-install
-npm test -- --grep @claim:no-dependency-install
-npm test -- --grep @claim:noninteractive-ci
-npm test -- --grep @claim:signing-key-permissions
-```
+## Known gaps / next steps
 
-The same clean clone then passed `npm test` (11 Rust tests and 24 Playwright tests), `npm run build`, `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo package --allow-dirty`.
-
-After deployment, `/opt/fleet/lib/verify-url.sh https://lsp-readiness-check.sociobot.in /tmp/lsp-readiness-polish-1-live-UJ5l8q` passed with a 673 ms cold load, no console errors, a title, `lang=en`, one H1, a main landmark, and no missing image alt text. Screenshots and JSON are at:
-
-- `/tmp/lsp-readiness-polish-1-live-UJ5l8q/screenshot-desktop.png`
-- `/tmp/lsp-readiness-polish-1-live-UJ5l8q/screenshot-mobile.png`
-- `/tmp/lsp-readiness-polish-1-live-UJ5l8q/verify.json`
-
-`PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test` passed 24/24. This includes live routing, metadata, focus/skip link, mobile targets and overflow, reduced motion, resettable demo isolation, offline reload, same-origin traffic, and Axe WCAG A/AA serious/critical checks. Live HTTP checks confirmed 200 for the real routes/assets and 404 for `/does-not-exist`; response headers include CSP with `frame-ancestors 'none'`, HSTS, `nosniff`, strict referrer policy, and permissions policy.
-
-## Known gaps
-
-No unresolved product or review finding remains. Docker and Podman are not installed in this worker, so a successful real engine launch was not possible here; the public-command fake-runtime integration tests verify the required pinned-image, no-network, read-only source, capability-drop, tmpfs, host-signing, and command-trap behavior.
+No known release-blocking gaps. Docker and Podman are unavailable in this verifier image, so the real container engine was not launched here; regression tests fully cover the normal command’s required pinned-image and isolation argument contract. Run one post-release smoke probe with the intended digest-pinned development image when an engine is available.
 
 ## Publishing
 
-Do not publish from this worker. The package is ready for the factory to publish with `cargo package` after its normal registry process.
+Do not publish from this worker. The crate package is ready for the factory’s registry process using `cargo package`.
