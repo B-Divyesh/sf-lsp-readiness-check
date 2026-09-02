@@ -11,7 +11,7 @@ use std::{
     process::{Command, Stdio},
     sync::mpsc,
     thread,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 pub const SCHEMA: &str = "https://lsp-readiness-check.sociobot.in/schema/v1";
@@ -131,7 +131,7 @@ pub fn inspect_repository(path: &Path, run_tests: bool) -> Result<ProbePayload> 
             name: "Repository tests".into(),
             command,
             status: CheckStatus::Declared,
-            evidence: "declared; pass --run-tests to execute".into(),
+            evidence: "declared; run without --skip-tests to execute".into(),
         },
         None => Capability {
             kind: "tests".into(),
@@ -142,14 +142,7 @@ pub fn inspect_repository(path: &Path, run_tests: bool) -> Result<ProbePayload> 
         },
     });
 
-    let ready = !languages.is_empty()
-        && capabilities
-            .iter()
-            .filter(|c| c.kind == "lsp")
-            .all(|c| c.status == CheckStatus::Ready)
-        && capabilities.iter().any(|c| {
-            c.kind == "tests" && matches!(c.status, CheckStatus::Ready | CheckStatus::Declared)
-        });
+    let ready = all_required_ready(&languages, &capabilities);
 
     Ok(ProbePayload {
         schema: SCHEMA.into(),
@@ -164,6 +157,18 @@ pub fn inspect_repository(path: &Path, run_tests: bool) -> Result<ProbePayload> 
         capabilities,
         source_digest: digest_inventory(&root, &files)?,
     })
+}
+
+fn all_required_ready(languages: &[String], capabilities: &[Capability]) -> bool {
+    let required: Vec<_> = capabilities
+        .iter()
+        .filter(|capability| matches!(capability.kind.as_str(), "lsp" | "formatter" | "tests"))
+        .collect();
+    !languages.is_empty()
+        && !required.is_empty()
+        && required
+            .iter()
+            .all(|capability| capability.status == CheckStatus::Ready)
 }
 
 pub fn demo_payload() -> ProbePayload {
@@ -339,7 +344,11 @@ fn probe_executable(kind: &str, command: &str) -> Capability {
             evidence: "command not found on PATH".into(),
         };
     };
-    let output = Command::new(&path).arg("--version").output();
+    let output = if command == "gofmt" {
+        Command::new(&path).stdin(Stdio::null()).output()
+    } else {
+        Command::new(&path).arg("--version").output()
+    };
     match output {
         Ok(output) if output.status.success() => {
             let evidence = String::from_utf8_lossy(if output.stdout.is_empty() {
@@ -350,7 +359,11 @@ fn probe_executable(kind: &str, command: &str) -> Capability {
             .trim()
             .lines()
             .next()
-            .unwrap_or("version command passed")
+            .unwrap_or(if command == "gofmt" {
+                "gofmt accepted an empty input"
+            } else {
+                "version command passed"
+            })
             .to_string();
             Capability {
                 kind: kind.into(),
@@ -395,7 +408,7 @@ fn probe_lsp(root: &Path, spec: &LanguageSpec) -> Capability {
         .args(spec.server_args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .current_dir(root)
         .spawn()
     {
@@ -438,6 +451,11 @@ fn probe_lsp(root: &Path, spec: &LanguageSpec) -> Capability {
     let result = rx.recv_timeout(Duration::from_secs(5));
     let _ = child.kill();
     let _ = child.wait();
+    let mut stderr = String::new();
+    if let Some(mut stream) = child.stderr.take() {
+        let _ = stream.read_to_string(&mut stderr);
+    }
+    let server_error = stderr.trim().lines().next().unwrap_or("");
     match result {
         Ok(Ok(reply)) if reply.get("result").is_some() => {
             let (status, evidence) = summarize_lsp_capabilities(&reply);
@@ -461,14 +479,22 @@ fn probe_lsp(root: &Path, spec: &LanguageSpec) -> Capability {
             name: format!("{} language server", spec.name),
             command: command_label,
             status: CheckStatus::Failed,
-            evidence: error.to_string(),
+            evidence: if server_error.is_empty() {
+                error.to_string()
+            } else {
+                format!("{error}; {server_error}")
+            },
         },
         Err(_) => Capability {
             kind: "lsp".into(),
             name: format!("{} language server", spec.name),
             command: command_label,
             status: CheckStatus::Failed,
-            evidence: "initialize timed out after 5 seconds".into(),
+            evidence: if server_error.is_empty() {
+                "initialize timed out after 5 seconds".into()
+            } else {
+                format!("initialize timed out after 5 seconds; {server_error}")
+            },
         },
     }
 }
@@ -556,7 +582,34 @@ fn detect_test_command(root: &Path) -> Option<String> {
 fn run_test_command(root: &Path, command: &str) -> Capability {
     let mut parts = command.split_whitespace();
     let binary = parts.next().unwrap_or(command);
-    match Command::new(binary).args(parts).current_dir(root).status() {
+    let mut child = match Command::new(binary).args(parts).current_dir(root).spawn() {
+        Ok(child) => child,
+        Err(error) => {
+            return Capability {
+                kind: "tests".into(),
+                name: "Repository tests".into(),
+                command: command.into(),
+                status: CheckStatus::Failed,
+                evidence: error.to_string(),
+            };
+        }
+    };
+    let started = Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Ok(status),
+            Ok(None) if started.elapsed() < Duration::from_secs(300) => {
+                thread::sleep(Duration::from_millis(100));
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                break Err("test command timed out after 5 minutes".to_string());
+            }
+            Err(error) => break Err(error.to_string()),
+        }
+    };
+    match status {
         Ok(status) if status.success() => Capability {
             kind: "tests".into(),
             name: "Repository tests".into(),
@@ -576,7 +629,7 @@ fn run_test_command(root: &Path, command: &str) -> Capability {
             name: "Repository tests".into(),
             command: command.into(),
             status: CheckStatus::Failed,
-            evidence: error.to_string(),
+            evidence: error,
         },
     }
 }
@@ -628,5 +681,16 @@ mod tests {
         let partial = serde_json::json!({"result":{"capabilities":{"definitionProvider":true}}});
         assert_eq!(summarize_lsp_capabilities(&complete).0, CheckStatus::Ready);
         assert_eq!(summarize_lsp_capabilities(&partial).0, CheckStatus::Failed);
+    }
+
+    #[test]
+    fn readiness_requires_formatters_and_executed_tests() {
+        let mut packet = demo_payload();
+        assert!(all_required_ready(&packet.languages, &packet.capabilities));
+        packet.capabilities[1].status = CheckStatus::Missing;
+        assert!(!all_required_ready(&packet.languages, &packet.capabilities));
+        packet.capabilities[1].status = CheckStatus::Ready;
+        packet.capabilities[4].status = CheckStatus::Declared;
+        assert!(!all_required_ready(&packet.languages, &packet.capabilities));
     }
 }

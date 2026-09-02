@@ -6,6 +6,7 @@ description = "Verify repository language tooling before an agent edits code"
 license = "MIT"
 repository = "https://github.com/B-Divyesh/sf-lsp-readiness-check"
 readme = "README.md"
+include = ["src/**", "examples/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE", "CHANGELOG.md"]
 
 [[bin]]
 name = "lsp-readiness"
@@ -23,4 +24,3 @@ sha2 = "0.10"
 
 [dev-dependencies]
 tempfile = "3.20"
-

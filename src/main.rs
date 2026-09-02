@@ -31,9 +31,9 @@ enum Commands {
         /// Ed25519 private key path; created on first use
         #[arg(long, default_value = ".lsp-readiness/signing.key")]
         key: PathBuf,
-        /// Run the detected test command. This may take time.
+        /// Skip the test command and produce a non-ready inventory
         #[arg(long)]
-        run_tests: bool,
+        skip_tests: bool,
         /// Print only the signed JSON packet
         #[arg(long)]
         json: bool,
@@ -55,9 +55,9 @@ enum Commands {
         /// Ed25519 private key path on the host; created on first use
         #[arg(long, default_value = ".lsp-readiness/signing.key")]
         key: PathBuf,
-        /// Run the detected test command inside the container
+        /// Skip the test command and produce a non-ready inventory
         #[arg(long)]
-        run_tests: bool,
+        skip_tests: bool,
         /// Print only the signed JSON packet
         #[arg(long)]
         json: bool,
@@ -94,10 +94,10 @@ fn run() -> Result<ExitCode> {
             path,
             output,
             key,
-            run_tests,
+            skip_tests,
             json,
         } => {
-            let payload = inspect_repository(&path, run_tests)?;
+            let payload = inspect_repository(&path, !skip_tests)?;
             let ready = payload.ready;
             let key = load_or_create_signing_key(&key)?;
             let packet = sign(payload, &key)?;
@@ -145,9 +145,9 @@ fn run() -> Result<ExitCode> {
             runtime,
             output,
             key,
-            run_tests,
+            skip_tests,
             json,
-        } => run_container(&path, &image, &runtime, &output, &key, run_tests, json),
+        } => run_container(&path, &image, &runtime, &output, &key, skip_tests, json),
         Commands::Verify { packet, json } => {
             let packet: SignedPacket = serde_json::from_slice(&fs::read(&packet)?)?;
             verify(&packet)?;
@@ -167,7 +167,7 @@ fn run_container(
     runtime: &str,
     output: &Path,
     key: &Path,
-    run_tests: bool,
+    skip_tests: bool,
     json: bool,
 ) -> Result<ExitCode> {
     let repository = path
@@ -210,8 +210,8 @@ fn run_container(
         executable.display()
     ));
     command.args([image, "/bin/sh", "-c"]);
-    command.arg(if run_tests {
-        "cp -R /source/. /workspace && exec /usr/local/bin/lsp-readiness check /workspace --output /out/packet.json --key /out/signing.key --run-tests"
+    command.arg(if skip_tests {
+        "cp -R /source/. /workspace && exec /usr/local/bin/lsp-readiness check /workspace --output /out/packet.json --key /out/signing.key --skip-tests"
     } else {
         "cp -R /source/. /workspace && exec /usr/local/bin/lsp-readiness check /workspace --output /out/packet.json --key /out/signing.key"
     });
