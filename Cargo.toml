@@ -1,12 +1,12 @@
 [package]
 name = "lsp-readiness-check"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Verify repository language tooling before an agent edits code"
 license = "MIT"
 repository = "https://github.com/B-Divyesh/sf-lsp-readiness-check"
 readme = "README.md"
-include = ["src/**", "examples/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE", "CHANGELOG.md"]
+include = ["src/**", "tests/**", "examples/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE", "CHANGELOG.md"]
 
 [[bin]]
 name = "lsp-readiness"
@@ -15,7 +15,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0"
 base64 = "0.22"
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }

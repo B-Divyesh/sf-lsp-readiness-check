@@ -1,4 +1,4 @@
-const CACHE = 'lsp-readiness-v2';
+const CACHE = 'lsp-readiness-v3';
 const SHELL = ['/', '/demo', '/privacy', '/terms', '/topographic-survey.webp', '/favicon.svg', '/fonts/fraunces-latin.woff2', '/sample/northstar-api.lsp-readiness.json'];
 self.addEventListener('install', (event) => event.waitUntil((async () => {
   const cache = await caches.open(CACHE);

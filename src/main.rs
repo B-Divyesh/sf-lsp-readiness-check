@@ -1,14 +1,13 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use lsp_readiness_check::{
-    CheckStatus, SignedPacket, inspect_demo_fixture, inspect_repository,
+    CheckStatus, ProbePayload, SignedPacket, inspect_demo_fixture, inspect_repository,
     load_or_create_signing_key, sign, verify,
 };
 use std::{
     fs,
     path::{Path, PathBuf},
     process::{Command, ExitCode},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 #[derive(Parser)]
@@ -20,11 +19,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Probe language servers, formatters, and the repository test command
+    /// Probe tools in a locked-down container made from a pinned image
     Check {
         /// Repository root to inspect
         #[arg(default_value = ".")]
         path: PathBuf,
+        /// Digest-pinned development image containing the repository tools
+        #[arg(long, env = "LSP_READINESS_IMAGE", value_name = "IMAGE@sha256:DIGEST")]
+        image: String,
+        /// Container runtime command
+        #[arg(long, default_value = "docker")]
+        runtime: String,
         /// Capability packet output path
         #[arg(short, long, default_value = ".lsp-readiness.json")]
         output: PathBuf,
@@ -38,7 +43,7 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
-    /// Run the probe inside a locked-down Docker or Podman container
+    /// Compatibility alias for `check`
     Container {
         /// Repository root copied into the disposable container
         #[arg(default_value = ".")]
@@ -61,6 +66,15 @@ enum Commands {
         /// Print only the signed JSON packet
         #[arg(long)]
         json: bool,
+    },
+    /// Internal probe entry point used only inside the locked-down container
+    #[command(name = "__probe", hide = true)]
+    Probe {
+        /// Copied repository root inside the disposable container
+        path: PathBuf,
+        /// Skip the test command and produce a non-ready inventory
+        #[arg(long)]
+        skip_tests: bool,
     },
     /// Run a deterministic probe against bundled sample repository data
     Demo {
@@ -92,33 +106,13 @@ fn run() -> Result<ExitCode> {
     match Cli::parse().command {
         Commands::Check {
             path,
+            image,
+            runtime,
             output,
             key,
             skip_tests,
             json,
-        } => {
-            let payload = inspect_repository(&path, !skip_tests)?;
-            let ready = payload.ready;
-            let key = load_or_create_signing_key(&key)?;
-            let packet = sign(payload, &key)?;
-            let encoded = serde_json::to_string_pretty(&packet)?;
-            if let Some(parent) = output.parent().filter(|p| !p.as_os_str().is_empty()) {
-                fs::create_dir_all(parent)?;
-            }
-            fs::write(&output, format!("{encoded}\n"))
-                .with_context(|| format!("cannot write {}", output.display()))?;
-            if json {
-                println!("{encoded}");
-            } else {
-                print_report(&packet);
-                println!("\nSigned packet: {}", output.display());
-            }
-            Ok(if ready {
-                ExitCode::SUCCESS
-            } else {
-                ExitCode::from(1)
-            })
-        }
+        } => run_container(&path, &image, &runtime, &output, &key, skip_tests, json),
         Commands::Demo { json } => {
             let dir =
                 std::env::temp_dir().join(format!("lsp-readiness-demo-{}", std::process::id()));
@@ -148,6 +142,22 @@ fn run() -> Result<ExitCode> {
             skip_tests,
             json,
         } => run_container(&path, &image, &runtime, &output, &key, skip_tests, json),
+        Commands::Probe { path, skip_tests } => {
+            if std::env::var_os("LSP_READINESS_SANDBOX").as_deref()
+                != Some(std::ffi::OsStr::new("1"))
+                || path != Path::new("/workspace")
+            {
+                anyhow::bail!("the internal probe can run only inside the readiness container");
+            }
+            let payload = inspect_repository(&path, !skip_tests)?;
+            let ready = payload.ready;
+            println!("{}", serde_json::to_string(&payload)?);
+            Ok(if ready {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            })
+        }
         Commands::Verify { packet, json } => {
             let packet: SignedPacket = serde_json::from_slice(&fs::read(&packet)?)?;
             verify(&packet)?;
@@ -174,16 +184,10 @@ fn run_container(
     let repository = path
         .canonicalize()
         .with_context(|| format!("cannot open {}", path.display()))?;
-    let executable = std::env::current_exe()?.canonicalize()?;
-    let nonce = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-    let staging = std::env::temp_dir().join(format!(
-        "lsp-readiness-container-{}-{nonce}",
-        std::process::id()
-    ));
-    fs::create_dir_all(&staging)?;
-    if key.exists() {
-        fs::copy(key, staging.join("signing.key"))?;
+    if !repository.is_dir() {
+        anyhow::bail!("repository path must be a directory");
     }
+    let executable = std::env::current_exe()?.canonicalize()?;
 
     let mut command = Command::new(runtime);
     command.args([
@@ -200,11 +204,11 @@ fn run_container(
         "/tmp:rw,noexec,nosuid,size=256m",
         "-e",
         "HOME=/tmp",
+        "-e",
+        "LSP_READINESS_SANDBOX=1",
         "-v",
     ]);
     command.arg(format!("{}:/source:ro", repository.display()));
-    command.arg("-v");
-    command.arg(format!("{}:/out:rw", staging.display()));
     command.arg("-v");
     command.arg(format!(
         "{}:/usr/local/bin/lsp-readiness:ro",
@@ -212,55 +216,58 @@ fn run_container(
     ));
     command.args([image, "/bin/sh", "-c"]);
     command.arg(if skip_tests {
-        "cp -R /source/. /workspace && exec /usr/local/bin/lsp-readiness check /workspace --output /out/packet.json --key /out/signing.key --skip-tests"
+        "cp -R /source/. /workspace && exec /usr/local/bin/lsp-readiness __probe /workspace --skip-tests"
     } else {
-        "cp -R /source/. /workspace && exec /usr/local/bin/lsp-readiness check /workspace --output /out/packet.json --key /out/signing.key"
+        "cp -R /source/. /workspace && exec /usr/local/bin/lsp-readiness __probe /workspace"
     });
-    let status = command.status().with_context(|| {
+    let result = command.output().with_context(|| {
         format!("cannot start {runtime}; install it or choose --runtime podman")
     })?;
-
-    let staged_packet = staging.join("packet.json");
-    if !staged_packet.exists() {
-        let _ = fs::remove_dir_all(&staging);
-        if status.success() {
-            anyhow::bail!("container finished without a capability packet");
-        }
-        return Ok(ExitCode::from(status.code().unwrap_or(2) as u8));
+    let container_code = result.status.code().unwrap_or(2);
+    if !matches!(container_code, 0 | 1) {
+        let detail = String::from_utf8_lossy(&result.stderr);
+        let detail = detail.trim();
+        anyhow::bail!(
+            "container probe failed{}",
+            if detail.is_empty() {
+                format!(" with exit code {container_code}")
+            } else {
+                format!(": {detail}")
+            }
+        );
     }
+    let payload: ProbePayload = serde_json::from_slice(&result.stdout)
+        .context("container did not return a valid readiness payload")?;
+    let signing_key = load_or_create_signing_key(key)?;
+    let packet = sign(payload, &signing_key)?;
+    let encoded = serde_json::to_string_pretty(&packet)?;
     if let Some(parent) = output.parent().filter(|p| !p.as_os_str().is_empty()) {
         fs::create_dir_all(parent)?;
     }
-    if let Some(parent) = key.parent().filter(|p| !p.as_os_str().is_empty()) {
-        fs::create_dir_all(parent)?;
-    }
-    fs::copy(&staged_packet, output)?;
-    if !key.exists() {
-        fs::copy(staging.join("signing.key"), key)?;
-    }
-    let packet: SignedPacket = serde_json::from_slice(&fs::read(output)?)?;
+    fs::write(output, format!("{encoded}\n"))
+        .with_context(|| format!("cannot write {}", output.display()))?;
     if json {
-        println!("{}", serde_json::to_string_pretty(&packet)?);
+        println!("{encoded}");
     } else {
         print_report(&packet);
-        println!("\nIsolated probe: {runtime} / network disabled / source copied");
+        println!("\nIsolated probe: {runtime} / network disabled / read-only source");
         println!("Signed packet: {}", output.display());
     }
-    let _ = fs::remove_dir_all(&staging);
-    Ok(if status.success() {
+    Ok(if container_code == 0 {
         ExitCode::SUCCESS
     } else {
-        ExitCode::from(status.code().unwrap_or(1) as u8)
+        ExitCode::from(1)
     })
 }
 
 fn validate_pinned_image(image: &str) -> Result<()> {
-    let Some((_, digest)) = image.rsplit_once("@sha256:") else {
+    let Some((name, digest)) = image.rsplit_once("@sha256:") else {
         anyhow::bail!(
             "container image must use an immutable sha256 digest, for example ghcr.io/team/dev@sha256:<64-hex-digest>"
         );
     };
-    if digest.len() != 64
+    if name.is_empty()
+        || digest.len() != 64
         || !digest
             .chars()
             .all(|character| character.is_ascii_hexdigit())

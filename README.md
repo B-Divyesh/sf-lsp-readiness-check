@@ -29,20 +29,23 @@ The factory publishes packages after review. This repository does not publish it
 
 ## Check a repository
 
-Run the check inside the same disposable development or CI container that an agent will use:
+Choose the digest-pinned development image that contains your repository tools. Pass it with `--image` or set `LSP_READINESS_IMAGE`:
 
 ```sh
 cd your-repository
+export LSP_READINESS_IMAGE='your-registry/your-dev-image@sha256:YOUR_64_HEX_DIGEST'
 lsp-readiness check . --output .lsp-readiness.json
 ```
 
-Or let the CLI create a locked-down container from your pinned development image:
+The normal `check` command always creates a locked-down Docker container. Choose Podman when needed:
 
 ```sh
-lsp-readiness container . --image ghcr.io/your-team/dev@sha256:YOUR_DIGEST
+lsp-readiness check . --runtime podman
 ```
 
-The container has no network, Linux capabilities, or writable root. The CLI copies source into a temporary filesystem, runs the probe, and returns only the signed packet.
+The container has no network, Linux capabilities, or writable root. It receives a read-only source mount and copies that source into temporary storage. The host signs the returned inventory, so the signing key is never mounted into the container. Mutable image tags are rejected before a runtime starts.
+
+`lsp-readiness container` remains as a compatibility alias for `check`.
 
 The first check creates `.lsp-readiness/signing.key` with owner-only permissions. Keep that key in your CI secret store if multiple runners must produce packets for the same policy.
 
@@ -76,7 +79,7 @@ Test commands are detected from `package.json`, `Cargo.toml`, `pyproject.toml`, 
 
 ## Privacy and isolation
 
-The CLI makes no network request and contains no telemetry. It inspects the local repository and executes tools already present in the environment. Run it in a disposable container with networking disabled and installers pinned by your own image policy. It does not install dependencies or transmit source code.
+The CLI makes no network request and contains no telemetry. Normal checks execute repository tools only inside the locked-down container. The CLI skips every source-tree symlink and never mounts the signing key into the sandbox. It does not install dependencies or transmit source code.
 
 The website makes no cross-origin request. Its demo uses only bundled sample data.
 

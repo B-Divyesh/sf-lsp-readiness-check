@@ -131,7 +131,7 @@ fn inspect_repository_with_tools(
         }
     }
 
-    let test = detect_test_command(&root);
+    let test = detect_test_command(&root, &files);
     capabilities.push(match test {
         Some(command) if run_tests => run_test_command(&root, &command),
         Some(command) => Capability {
@@ -255,7 +255,11 @@ fn walk_source_files(root: &Path) -> Result<Vec<PathBuf>> {
             let entry = entry?;
             let path = entry.path();
             let rel = path.strip_prefix(root).unwrap_or(&path);
-            if path.is_dir() {
+            let file_type = entry.file_type()?;
+            if file_type.is_symlink() {
+                continue;
+            }
+            if file_type.is_dir() {
                 let name = path.file_name().and_then(|v| v.to_str()).unwrap_or("");
                 if matches!(
                     name,
@@ -263,8 +267,12 @@ fn walk_source_files(root: &Path) -> Result<Vec<PathBuf>> {
                 ) {
                     continue;
                 }
+                let resolved = path.canonicalize()?;
+                if !resolved.starts_with(root) {
+                    bail!("repository directory escaped its selected root");
+                }
                 visit(&path, root, out)?;
-            } else if is_relevant(rel) {
+            } else if file_type.is_file() && is_relevant(rel) {
                 out.push(path);
                 if out.len() > 10_000 {
                     bail!("repository scan stopped at 10,000 relevant files");
@@ -522,8 +530,13 @@ fn read_lsp_reply(reader: impl Read) -> Result<serde_json::Value> {
     Ok(serde_json::from_slice(&body)?)
 }
 
-fn detect_test_command(root: &Path) -> Option<String> {
-    if root.join("package.json").exists()
+fn detect_test_command(root: &Path, files: &[PathBuf]) -> Option<String> {
+    let includes_manifest = |name: &str| {
+        files
+            .iter()
+            .any(|path| path.parent() == Some(root) && path.file_name().is_some_and(|v| v == name))
+    };
+    if includes_manifest("package.json")
         && let Ok(value) =
             serde_json::from_slice::<serde_json::Value>(&fs::read(root.join("package.json")).ok()?)
         && value
@@ -533,13 +546,13 @@ fn detect_test_command(root: &Path) -> Option<String> {
     {
         return Some("npm test".into());
     }
-    if root.join("Cargo.toml").exists() {
+    if includes_manifest("Cargo.toml") {
         return Some("cargo test".into());
     }
-    if root.join("pyproject.toml").exists() {
+    if includes_manifest("pyproject.toml") {
         return Some("python -m pytest".into());
     }
-    if root.join("go.mod").exists() {
+    if includes_manifest("go.mod") {
         return Some("go test ./...".into());
     }
     None
@@ -700,5 +713,50 @@ mod tests {
         packet.capabilities[1].status = CheckStatus::Ready;
         packet.capabilities[4].status = CheckStatus::Declared;
         assert!(!all_required_ready(&packet.languages, &packet.capabilities));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn repository_scan_skips_external_relative_directory_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let boundary = tempfile::tempdir().unwrap();
+        let repository = boundary.path().join("repository");
+        let outside = boundary.path().join("outside");
+        fs::create_dir_all(&repository).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(repository.join("package.json"), "{}").unwrap();
+        fs::write(outside.join("outside.ts"), "export const escaped = true;").unwrap();
+        symlink("../outside", repository.join("foreign")).unwrap();
+
+        let files = walk_source_files(&repository.canonicalize().unwrap()).unwrap();
+        assert_eq!(files, vec![repository.join("package.json")]);
+        assert!(
+            inspect_repository(&repository, false)
+                .unwrap()
+                .languages
+                .is_empty()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn repository_scan_skips_absolute_directory_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let repository = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        fs::write(repository.path().join("Cargo.toml"), "[package]").unwrap();
+        fs::write(outside.path().join("outside.rs"), "pub fn escaped() {}").unwrap();
+        symlink(outside.path(), repository.path().join("absolute-foreign")).unwrap();
+
+        let files = walk_source_files(&repository.path().canonicalize().unwrap()).unwrap();
+        assert_eq!(files, vec![repository.path().join("Cargo.toml")]);
+        assert!(
+            inspect_repository(repository.path(), false)
+                .unwrap()
+                .languages
+                .is_empty()
+        );
     }
 }

@@ -40,7 +40,7 @@ function shell(content: string, demoMode = false): string {
     <footer class="site-footer">
       <p><strong>LSP Readiness Check</strong><br><span>Verify language tooling before agent edits.</span></p>
       <div><a href="/privacy" data-link>Privacy</a><a href="/terms" data-link>Terms</a><a href="https://hello-factory.sociobot.in" rel="external">Built by Param Factory <span class="sr-only">(external site)</span></a></div>
-      <p class="build">v0.1.0 · build 2026.09.02</p>
+      <p class="build">v0.1.1 · build 2026.09.02</p>
     </footer>`;
 }
 
@@ -74,7 +74,7 @@ function landing(): string {
     </section>
 
     <section id="how" class="route-section section-rule" aria-labelledby="how-title">
-      <div class="section-heading"><p class="eyebrow">Three checks</p><h2 id="how-title">How the preflight works</h2><p>Run it in your container, or let the CLI create one from a pinned development image.</p></div>
+      <div class="section-heading"><p class="eyebrow">Three checks</p><h2 id="how-title">How the preflight works</h2><p>The normal check runs in a network-disabled container made from your digest-pinned development image.</p></div>
       <ol class="route-list">
         <li><span>01</span><div><h3>Scan the repository</h3><p>Detect source languages and declared test commands. Ignore dependencies, build output, and source contents.</p></div></li>
         <li><span>02</span><div><h3>Probe each tool</h3><p>Start each detected language server. Check formatter versions and run the test command.</p></div></li>
@@ -112,7 +112,7 @@ function demo(): string {
 }
 
 function privacy(): string {
-  return shell(`<article class="legal"><p class="eyebrow">Policy · effective 2 September 2026</p><h1>Your repository stays on your machine</h1><p>LSP Readiness Check is a local command-line tool. It reads file names, manifest files, and command output to build a capability packet.</p><h2>Data the free CLI handles</h2><p>The CLI stores its signing key and output in paths you choose. It sends no repository data to us.</p><h2>Demo data</h2><p>The website demo uses bundled sample data. It stores only the demo state under the <code>demo:</code> browser storage prefix.</p><h2>Contact</h2><p>Questions can be sent to <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p></article>`);
+  return shell(`<article class="legal"><p class="eyebrow">Policy · effective 2 September 2026</p><h1>Your repository stays on your machine</h1><p>LSP Readiness Check is a local command-line tool. It reads file names, manifest files, and command output to build a capability packet.</p><h2>Data the free CLI handles</h2><p>Normal checks run repository commands only inside a network-disabled container. The CLI skips source-tree symlinks and keeps your signing key on the host.</p><p>The CLI stores its signing key and output in paths you choose. It sends no repository data to us.</p><h2>Demo data</h2><p>The website demo uses bundled sample data. It stores only the demo state under the <code>demo:</code> browser storage prefix.</p><h2>Contact</h2><p>Questions can be sent to <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p></article>`);
 }
 
 function terms(): string {

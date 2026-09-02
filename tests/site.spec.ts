@@ -61,6 +61,8 @@ test('@claim:local-operation the CLI has no network client and the demo makes no
   expect(command).toContain('"none"');
   expect(command).toContain('"--cap-drop=ALL"');
   expect(command).toContain(':/source:ro');
+  const symlinkRegressions = await exec('cargo', ['test', 'repository_scan_skips']);
+  expect(symlinkRegressions.stdout).toContain('2 passed');
 });
 
 test('@claim:signed-packet the CLI creates a packet whose signature verifies', async () => {
@@ -85,6 +87,23 @@ test('@claim:offline-demo the demo reloads offline after the first visit', async
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Review a completed readiness probe');
+  await context.close();
+});
+
+test('a new service worker removes the previous release cache', async ({ browser }) => {
+  const context = await browser.newContext({ serviceWorkers: 'allow' });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:4173/demo');
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.evaluate(async () => {
+    const previous = await caches.open('lsp-readiness-v2');
+    await previous.put('/stale-release', new Response('stale'));
+    const registration = await navigator.serviceWorker.getRegistration();
+    await registration?.unregister();
+  });
+  await page.reload();
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => caches.keys())).toEqual(['lsp-readiness-v3']);
   await context.close();
 });
 

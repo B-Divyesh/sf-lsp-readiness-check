@@ -24,7 +24,7 @@ Read-aloud check: “Verify tooling before an agent edits. Try it with sample da
 | The CLI writes one JSON packet. | 6 | Pass |
 | It records each probe, the repository inventory digest, and an Ed25519 signature. | 12 | Pass |
 | How the preflight works | 4 | Pass |
-| Run it in your container, or let the CLI create one from a pinned development image. | 15 | Pass |
+| The normal check runs in a network-disabled container made from your digest-pinned development image. | 14 | Pass |
 | Detect source languages and declared test commands. | 7 | Pass |
 | Ignore dependencies, build output, and source contents. | 7 | Pass |
 | Start each detected language server. | 5 | Pass |

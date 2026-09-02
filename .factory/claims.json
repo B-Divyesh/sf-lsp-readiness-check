@@ -8,10 +8,10 @@
   },
   {
     "id": "local-operation",
-    "claim": "The CLI has no network client, its container disables networking, and the website demo makes no cross-origin request.",
-    "where": "landing facts, demo banner, privacy, README",
+    "claim": "Every normal check uses a digest-pinned, network-disabled container, repository discovery skips symlinks, and the website demo makes no cross-origin request.",
+    "where": "landing how-it-works section, demo banner, privacy, README",
     "test": "npm test -- --grep @claim:local-operation",
-    "sandbox": "fresh browser context records each demo request; inspect the dependency list and fixed container security flags"
+    "sandbox": "fresh browser context records each demo request; executable fake runtime captures the normal check's image and container security flags"
   },
   {
     "id": "signed-packet",
