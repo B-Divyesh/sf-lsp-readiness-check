@@ -139,6 +139,18 @@ test('mobile layout stays within the viewport', async ({ page }) => {
   expect(undersized).toEqual([]);
 });
 
+test('mobile demo keeps its banner touch targets and terminal keyboard accessible', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/demo');
+  await expect(page.locator('#terminal-output')).toHaveAttribute('tabindex', '0');
+  const undersized = await page.locator('a, button').evaluateAll((elements) => elements
+    .map((element) => element.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0 && (rect.width < 44 || rect.height < 44)));
+  expect(undersized).toEqual([]);
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
+});
+
 test('static hosting routes known pages through the app and returns a real 404 otherwise', async () => {
   const config = JSON.parse(await readFile(join(process.cwd(), 'site/public/staticwebapp.config.json'), 'utf8'));
   expect(config.routes).toEqual(expect.arrayContaining([

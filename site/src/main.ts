@@ -103,7 +103,7 @@ function demo(): string {
     <section class="demo-page contour-field">
       <div class="demo-heading"><p class="eyebrow">Sample repository · northstar-api</p><h1>Review a completed readiness probe</h1><p>This replay uses bundled TypeScript and Rust sample data. It does not inspect your device.</p></div>
       <div class="demo-layout">
-        <div class="terminal" aria-label="Recorded terminal output"><span class="terminal-bar"><i></i><i></i><i></i><b>lsp-readiness demo</b></span><pre id="terminal-output" aria-live="polite"><code><span class="muted">$</span> lsp-readiness demo
+        <div class="terminal" aria-label="Recorded terminal output"><span class="terminal-bar"><i></i><i></i><i></i><b>lsp-readiness demo</b></span><pre id="terminal-output" aria-live="polite" tabindex="0"><code><span class="muted">$</span> lsp-readiness demo
 <span class="muted">Scanning northstar-api…</span></code></pre><div class="terminal-controls"><button class="button terminal-button" data-run-demo>Run sample probe</button><button class="text-button on-dark" data-replay>Replay output</button></div></div>
         <aside class="demo-summary"><p class="eyebrow">Readiness contract</p><strong class="score">5/5</strong><p>required checks pass</p><dl><div><dt>Languages</dt><dd>TypeScript, Rust</dd></div><div><dt>Packet</dt><dd>Ed25519 signed</dd></div><div><dt>Source digest</dt><dd><code>sha256:6ad036fe…</code></dd></div></dl><a class="button secondary" href="/sample/northstar-api.lsp-readiness.json" download>Download sample JSON</a></aside>
       </div>

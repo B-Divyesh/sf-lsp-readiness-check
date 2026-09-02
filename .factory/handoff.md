@@ -28,7 +28,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo package --allow-dirty
 ```
 
-All commands passed. `npm test` reports 6 Rust tests and 16 Playwright tests passing. The four exact claim commands each passed from a clean `npm ci` install. `cargo package --allow-dirty` packaged 56 files (72.7 KiB compressed) and passed its package verification.
+All commands passed. `npm test` reports 6 Rust tests and 17 Playwright tests passing. The four exact claim commands each passed from a clean `npm ci` install. `cargo package --allow-dirty` packaged 56 files (72.7 KiB compressed) and passed its package verification.
 
 Consumer check: installed the packaged crate into a fresh temporary prefix with `cargo install --path target/package/lsp-readiness-check-0.1.0 --locked`; `demo --json` generated a ready packet, `verify --json` returned `{"valid":true,"algorithm":"Ed25519"}`, and a mutable `ubuntu:latest` image exited 2 before runtime execution.
 
