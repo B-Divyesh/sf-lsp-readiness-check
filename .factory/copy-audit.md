@@ -47,4 +47,4 @@ Section names: `Signed capability packet`, `How the repository check works`, and
 | Browser sample | demo |
 | Default isolated operation | repository check |
 
-Catalog description: “Verify repository tooling before an agent edits.” It is 46 characters, starts with a verb, and has no marketing words.
+Catalog description: “Verify repository tooling before an agent edits.” It is 48 characters, starts with a verb, and has no marketing words.

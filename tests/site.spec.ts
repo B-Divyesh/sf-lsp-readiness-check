@@ -77,6 +77,9 @@ async function checkWithCommandTraps(): Promise<{ source: string; before: string
 test('landing explains the job and opens the sample in one click', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('h1')).toHaveText('Verify tooling before an agent edits');
+  await expect(page.locator('.hero-copy .eyebrow')).toHaveText('Repository check · command-line tool');
+  await expect(page.getByRole('heading', { name: 'Signed capability packet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'How the repository check works' })).toBeVisible();
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
   await expect(page).toHaveURL(/\/?demo=1$/);
   await expect(page.getByText('5/5')).toBeVisible();
