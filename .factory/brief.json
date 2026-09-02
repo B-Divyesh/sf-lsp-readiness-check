@@ -1,0 +1,15 @@
+{
+  "slug": "lsp-readiness-check",
+  "title": "LSP Readiness Check",
+  "summary": "Verify code navigation, diagnostics, formatting, and tests before an agent edits your repository.",
+  "artifact_class": "cli",
+  "user": "Small product teams onboarding contributors to agent-assisted repositories.",
+  "smallest_useful_product": "A CLI that inventories repository language tooling, probes commands, and writes an agent-readable signed capability file.",
+  "monetization": "$49/repository/month for private CI checks, policy templates, and readiness history.",
+  "constraints": [
+    "Do not transmit source code.",
+    "Run active language-server probes in disposable containers.",
+    "Pin installers and verify provenance.",
+    "Respect repository build costs."
+  ]
+}
