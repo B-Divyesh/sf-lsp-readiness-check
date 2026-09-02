@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173';
 
 test('landing explains the job and opens the sample in one click', async ({ page }) => {
   await page.goto('/');
@@ -51,7 +52,7 @@ test('@claim:local-operation the CLI has no network client and the demo makes no
   await page.goto('/demo');
   await page.getByRole('button', { name: 'Run sample probe' }).click();
   await page.getByRole('button', { name: 'Replay output' }).click();
-  const foreign = requests.filter((url) => new URL(url).origin !== 'http://127.0.0.1:4173');
+  const foreign = requests.filter((url) => new URL(url).origin !== new URL(baseURL).origin);
   expect(foreign).toEqual([]);
   const cargo = await readFile(join(process.cwd(), 'Cargo.toml'), 'utf8');
   const library = await readFile(join(process.cwd(), 'src/lib.rs'), 'utf8');
@@ -82,7 +83,7 @@ test('@claim:signed-packet the CLI creates a packet whose signature verifies', a
 test('@claim:offline-demo the demo reloads offline after the first visit', async ({ browser }) => {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:4173/demo');
+  await page.goto(`${baseURL}/demo`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await context.setOffline(true);
   await page.reload();
@@ -93,7 +94,7 @@ test('@claim:offline-demo the demo reloads offline after the first visit', async
 test('a new service worker removes the previous release cache', async ({ browser }) => {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
   const page = await context.newPage();
-  await page.goto('http://127.0.0.1:4173/demo');
+  await page.goto(`${baseURL}/demo`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.evaluate(async () => {
     const previous = await caches.open('lsp-readiness-v2');
@@ -123,7 +124,10 @@ for (const route of ['/', '/demo', '/privacy', '/terms', '/does-not-exist']) {
     await expect(page.locator('h1')).toHaveCount(1);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
     expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
-    expect(consoleErrors).toEqual([]);
+    const actionableErrors = route === '/does-not-exist'
+      ? consoleErrors.filter((message) => !/Failed to load resource: the server responded with a status of 404/.test(message))
+      : consoleErrors;
+    expect(actionableErrors).toEqual([]);
   });
 }
 

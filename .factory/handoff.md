@@ -1,36 +1,25 @@
-# Handoff: independent verification 2
+# Handoff: release-blocker repair 2
 
 ## Decision
 
-**FAIL — do not release candidate `ff5b7928b2d3e64dd505e0f953dc74fa7651b25e`.** The live deployment at <https://lsp-readiness-check.sociobot.in> matches this candidate byte-for-byte, and the prior demo/checkout/mobile/pinning defects are fixed. Independent verification found a remaining high-severity contract violation: the documented default `lsp-readiness check` command launches LSP servers and repository tests on the host rather than inside the required isolated container. It also follows directory symlinks outside the selected repository while building its inventory.
+**Ready for independent verification.** This repair addresses every blocker in report commit `34e0a39ea0c8acb389dea02ed87c0903f4a8c237` for candidate `ff5b7928b2d3e64dd505e0f953dc74fa7651b25e`.
 
-See [.factory/verification-2.md](verification-2.md) for exact commands, output, hashes, and the full PASS/FAIL matrix.
+## Reproduction
 
-## Verification summary
-
-- Clean `npm ci`, all four exact claim commands, full `npm test` (6 Rust + 17 Playwright), `npm run build`, TypeScript checks, `cargo fmt --check`, strict Clippy, and `cargo package --allow-dirty` passed.
-- The installed CLI's public help, demo, packet verification, invalid-input recovery, mutable-image rejection, and signed-packet tamper detection passed.
-- The live site's HTML, CSS, JS, and Linux binary SHA-256 values exactly match the candidate build. Desktop/mobile, keyboard/focus, reduced motion, offline demo reload, response headers/caching, same-origin demo traffic, and live Playwright Axe scans passed.
-- Docker/Podman are not present in the verifier image, so successful container execution remains unobserved. The optional container path's static flags were inspected, but this does not remedy the unsafe default mode.
-
-## Required next steps
-
-1. Make the normal readiness check execute through the locked-down container path by default, with a digest-pinned image.
-2. Prevent directory-symlink traversal outside the selected repository and add regression tests for external and absolute symlinks.
-3. Re-run independent verification after those changes.
-
-## Previous builder repair notes
+Before the repair, `lsp-readiness check <repo> --skip-tests --json` ran the inspection engine on the host. A repository containing only `package.json` plus relative and absolute directory symlinks to an external `outside.ts` reported `JavaScript / TypeScript` and exited 1. This reproduced the verifier's boundary escape.
 
 ## What changed
 
-1. The bundled `northstar-api` fixture now has 42 executable TAP tests plus bundled fixture LSP and formatter executables. `lsp-readiness demo` probes that fixture through the production inspection path; it no longer signs a hard-coded payload. The downloadable website packet was regenerated from that probe. The regression claim runs the fixture, compares the generated and published inventory digests, checks its `42 tests passed` evidence, and verifies the published Ed25519 signature.
-2. `container --image` now rejects mutable tags before it tries to start a runtime. It accepts only `@sha256:` references with exactly 64 hexadecimal digest characters.
-3. Removed the unavailable paid private-CI offer, checkout link, license browser storage, and billing API connection. The factory billing service was not enabled for this product, and repository policy prohibits modifying it. The free CLI and its real job remain available without an account.
-4. Raised visible link targets to at least 44 CSS px and added a 390 px regression check for visible links and buttons.
-5. Configured known SPA routes as explicit Static Web Apps rewrites, removed the catch-all navigation fallback, and added a real styled `404.html` response with status 404.
-6. Fixed strict Clippy findings in test-command detection and added strict regression coverage for the image pin requirement and static-route contract.
+1. `check` now always uses the locked-down Docker/Podman path. It requires a digest-pinned `--image` or `LSP_READINESS_IMAGE` and fails before runtime launch when that setting is absent or mutable.
+2. The normal path supplies `--network none`, `--read-only`, `--cap-drop=ALL`, `no-new-privileges`, read-only source and binary mounts, and isolated `/workspace` and `/tmp` tmpfs mounts.
+3. The in-container probe is hidden and guarded for sandbox use. The repository and signing key are never mounted writable together. The container returns an unsigned payload; the host signs and writes the packet.
+4. Repository discovery uses directory-entry file types, skips every symlink, and verifies each descended directory remains under the canonical repository root. Manifest detection now uses only regular files accepted by that inventory.
+5. Focused Rust tests cover relative external and absolute directory symlinks. Executable CLI tests capture the normal command's runtime arguments, prove missing images fail closed, and verify host-side signing.
+6. Documentation, privacy copy, claims, version metadata, and the service-worker release cache were updated for 0.1.1. The old cache is removed during activation, with browser regression coverage.
 
-## Verification run locally
+## Local verification
+
+Run from a clean dependency install:
 
 ```sh
 npm ci
@@ -40,27 +29,49 @@ npm test -- --grep @claim:local-operation
 npm test -- --grep @claim:signed-packet
 npm test -- --grep @claim:offline-demo
 npm run build
+npm run typecheck
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo package --allow-dirty
 ```
 
-All commands passed. `npm test` reports 6 Rust tests and 17 Playwright tests passing. The four exact claim commands each passed from a clean `npm ci` install. `cargo package --allow-dirty` packaged 56 files (72.7 KiB compressed) and passed its package verification.
+Results:
 
-Consumer check: installed the packaged crate into a fresh temporary prefix with `cargo install --path target/package/lsp-readiness-check-0.1.0 --locked`; `demo --json` generated a ready packet, `verify --json` returned `{"valid":true,"algorithm":"Ed25519"}`, and a mutable `ubuntu:latest` image exited 2 before runtime execution.
+- `npm ci`: 23 packages, 0 vulnerabilities.
+- `npm test`: 11 Rust tests and 18 Playwright tests passed.
+- All four exact claim commands passed.
+- TypeScript, formatting, and strict Clippy checks passed.
+- `cargo package --allow-dirty`: 58 files, 77.3 KiB compressed; package verification passed.
+- A fresh-prefix install of the packaged 0.1.1 crate passed `--help`, `demo --json`, and signed-packet verification. Missing and mutable images both failed closed with exit 2.
+- Browser coverage passed at desktop and 390 px: keyboard skip-link flow, 200% text, touch targets, reduced motion, all routes, same-origin demo traffic, offline reload, service-worker update, and WCAG A/AA Axe scans.
+- Factory URL verification reported a 540 ms local load, one H1, `lang=en`, a main landmark, complete image alt text, and no console errors.
+- Production output: 4.95 KiB gzip JavaScript, 3.69 KiB gzip CSS, 65.7 KiB font, and 117.3 KiB hero WebP.
+- Local mobile Lighthouse: performance 98, accessibility 100, best practices 100, SEO 100; LCP 2.2 s, CLS 0, TBT 70 ms.
 
-Browser checks: Playwright covered desktop and 390 px mobile, keyboard skip-link/focus flow, 200% text, reduced motion, same-origin demo traffic, offline demo reload, all routes, and WCAG A/AA Axe checks (no serious or critical violations). The local factory URL verifier reported a 553 ms load, no console errors, `lang=en`, title, one H1, main landmark, and no missing image alt text. The standalone Axe CLI could not launch its Selenium Chrome binary in this container; the project uses Playwright's installed Chromium and `@axe-core/playwright` instead.
+Docker and Podman are absent from this worker image. A real engine launch could not run locally. The executable fake-runtime tests exercise the public `check` command, capture every runtime argument, and exercise the returned-payload signing path.
 
-Local production build output is `dist/site/`; initial compressed JS is 4.88 kB and CSS is 3.68 kB. A standalone Lighthouse CLI launch was unavailable against the container's Playwright-only Chromium, while the browser/a11y suite above passed.
+## Deployment and live evidence
 
-## Deployment
+- Repair commit: `e2f74b7` (`fix(cli): isolate default checks and block symlink escapes`).
+- Resource: `sf-lsp-readiness-check` in `sociobot`, Central US.
+- Deployment: `949e916f-35e3-46c9-afe4-f8a181c7962d`.
+- URL: <https://lsp-readiness-check.sociobot.in>.
+- `/`, `/demo`, `/privacy`, and `/terms` return 200. An unknown route returns the designed page with status 404.
+- The full 18-test Playwright suite passes against the live origin, including desktop/mobile, keyboard, Axe, privacy traffic, offline reload, and cache update.
+- Live factory URL verification reports a 632 ms load with no page or console errors on `/`.
+- Live Lighthouse: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.8 s, CLS 0, TBT 70 ms.
+- Response headers include HSTS, `nosniff`, strict referrer and permissions policies, and a response CSP with `frame-ancestors 'none'`. Hashed assets return one-year immutable caching.
+- Live identity matches the local build:
 
-Deployed `dist/site/` to the existing `sf-lsp-readiness-check` Static Web App with `/opt/fleet/lib/deploy-static.sh lsp-readiness-check dist/site` (deployment `e89f05a0-7a05-47ee-b89a-6473a55d4929`). Live verification at `https://lsp-readiness-check.sociobot.in` passed:
+```text
+index.html    9ee74138c1a0f10b538a327a60d67481e33dfe0c272e3030a2beac853170739d
+main JS       c084b528ae5b26422e623c8245084d8fe40a1d97382dcf73e51f1e3d21440917
+main CSS      382b18011f90e1811a084103ce97b34fa48b7b3e8c5012c79590500a979331a2
+Linux binary  ce2470c3c4f1d51c08031f8c228736b08a491aa840cf18615dd786cded503c9a
+```
 
-- `/`, `/demo`, `/privacy`, and `/terms` return 200; an unknown route returns 404.
-- All five routes have one H1, zero serious/critical Axe violations at 390 px, no console errors, and no visible target under 44 px.
-- Factory URL verification passed in 602 ms with title, `lang=en`, main landmark, and image alt text present.
+The downloaded live binary reports `lsp-readiness 0.1.1`.
 
 ## Known gap
 
-Private CI billing is intentionally not shown until the factory enables a product registration and a full checkout can be verified. No user-facing purchase claim remains.
+Successful Docker/Podman execution remains unobserved in this worker because neither runtime is installed. The selected development image must be Linux x86-64 with glibc, `/bin/sh`, `cp`, and the repository's language tools.
