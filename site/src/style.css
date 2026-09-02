@@ -32,7 +32,7 @@ h2 { font-size: clamp(2.1rem, 4vw, 3.7rem); max-width: 15ch; letter-spacing: -.0
 h3 { font-size: 1.4rem; }
 .eyebrow { margin: 0 0 18px; color: var(--contour); font: 750 12px/1.2 var(--body); letter-spacing: .14em; text-transform: uppercase; }
 .hero { position: relative; display: grid; grid-template-columns: minmax(0, .88fr) minmax(460px, 1.12fr); min-height: 720px; max-width: 1240px; margin: auto; padding: 88px 28px 104px; align-items: center; gap: 48px; }
-.hero::after { content: '35° 41′ N  ·  PREFLIGHT 01'; position: absolute; right: 28px; bottom: 24px; color: var(--ink-soft); font: 700 11px/1 var(--body); letter-spacing: .12em; }
+.hero::after { content: '35° 41′ N  ·  CHECK 01'; position: absolute; right: 28px; bottom: 24px; color: var(--ink-soft); font: 700 11px/1 var(--body); letter-spacing: .12em; }
 .lede { max-width: 57ch; font-size: 19px; color: var(--ink-soft); margin: 28px 0 32px; }
 .hero-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .hero-actions span { max-width: 22ch; color: var(--ink-soft); font-size: 14px; }

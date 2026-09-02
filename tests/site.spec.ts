@@ -1,21 +1,112 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { execFile } from 'node:child_process';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { execFile, spawn } from 'node:child_process';
+import { chmod, mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173';
+const binary = join(process.cwd(), 'target/release/lsp-readiness');
+const pinnedImage = 'registry.example/readiness@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+type ClosedRun = { code: number; stdout: string; stderr: string; elapsed: number };
+
+function runWithClosedStdin(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<ClosedRun> {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const child = spawn(command, args, { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    const timeout = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`${args[0] ?? command} did not finish with stdin closed`));
+    }, 3_000);
+    child.on('error', (error) => { clearTimeout(timeout); reject(error); });
+    child.on('close', (code) => {
+      clearTimeout(timeout);
+      resolve({ code: code ?? 2, stdout, stderr, elapsed: Date.now() - started });
+    });
+  });
+}
+
+async function fakeRuntime(directory: string): Promise<string> {
+  const runtime = join(directory, 'capture-runtime');
+  const payload = JSON.stringify({
+    schema: 'https://lsp-readiness-check.sociobot.in/schema/v1', repository: 'repository', generated_at: 1,
+    ready: true, languages: ['JavaScript / TypeScript'],
+    capabilities: [
+      { kind: 'lsp', name: 'TypeScript language server', command: 'typescript-language-server --stdio', status: 'ready', evidence: 'fixture response' },
+      { kind: 'formatter', name: 'prettier', command: 'prettier', status: 'ready', evidence: 'fixture response' },
+      { kind: 'tests', name: 'Repository tests', command: 'npm test', status: 'ready', evidence: 'fixture response' },
+    ], source_digest: 'sha256:fixture',
+  });
+  await writeFile(runtime, `#!/bin/sh\n/bin/printf '%s\\n' '${payload}'\n`);
+  await chmod(runtime, 0o700);
+  return runtime;
+}
+
+async function checkWithCommandTraps(): Promise<{ source: string; before: string; marker: string; key: string; result: ClosedRun }> {
+  const boundary = await mkdtemp(join(tmpdir(), 'lsp-readiness-command-traps-'));
+  const repository = join(boundary, 'repository');
+  const traps = join(boundary, 'traps');
+  const source = join(repository, 'source.ts');
+  const marker = join(boundary, 'trap-ran');
+  const key = join(boundary, 'signing.key');
+  await mkdir(repository);
+  await mkdir(traps);
+  await writeFile(source, 'export const untouched = true;\n');
+  await writeFile(marker, '');
+  for (const command of ['npm', 'pnpm', 'yarn', 'bun', 'cargo', 'pip', 'pip3', 'poetry', 'uv', 'go', 'composer', 'typescript-language-server', 'rust-analyzer', 'prettier', 'rustfmt']) {
+    const trap = join(traps, command);
+    await writeFile(trap, '#!/bin/sh\n/bin/printf "%s\\n" "$0" >> "$LSP_READINESS_TRAP_LOG"\nexit 97\n');
+    await chmod(trap, 0o700);
+  }
+  const runtime = await fakeRuntime(boundary);
+  const before = await readFile(source, 'utf8');
+  const result = await runWithClosedStdin(binary, [
+    'check', repository, '--image', pinnedImage, '--runtime', runtime,
+    '--output', join(boundary, 'packet.json'), '--key', key, '--json',
+  ], { PATH: traps, LSP_READINESS_TRAP_LOG: marker });
+  return { source, before, marker, key, result };
+}
 
 test('landing explains the job and opens the sample in one click', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('h1')).toHaveText('Verify tooling before an agent edits');
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
-  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page).toHaveURL(/\/?demo=1$/);
   await expect(page.getByText('5/5')).toBeVisible();
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+});
+
+test('the direct demo URL keeps isolated storage, a reset control, and a way back to real data', async ({ page }) => {
+  await page.goto('/?demo=1');
+  await expect(page.getByRole('button', { name: 'Reset demo' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Start for real' })).toBeVisible();
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['demo:lsp-readiness-check']);
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Review a completed readiness probe');
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['demo:lsp-readiness-check']);
+  await page.getByRole('link', { name: 'Start for real' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
+});
+
+test('@claim:no-account the website and CLI demo run without credentials or an authentication request', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+  await page.goto('/?demo=1');
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  await page.getByRole('button', { name: 'Run sample probe' }).click();
+  const result = await runWithClosedStdin(binary, ['demo'], { PATH: process.env.PATH ?? '' });
+  expect(result.code, result.stderr).toBe(0);
+  expect(result.stdout).toContain('READY — agent edits may start');
+  expect(requests.filter((url) => /auth|login|account/i.test(new URL(url).pathname))).toEqual([]);
+  expect(requests.every((url) => new URL(url).origin === new URL(baseURL).origin)).toBe(true);
 });
 
 test('@claim:sample-probe the shipped fixture runs 42 tests and produces the displayed signed packet', async ({ page }) => {
@@ -64,6 +155,52 @@ test('@claim:local-operation the CLI has no network client and the demo makes no
   expect(command).toContain(':/source:ro');
   const symlinkRegressions = await exec('cargo', ['test', 'repository_scan_skips']);
   expect(symlinkRegressions.stdout).toContain('2 passed');
+});
+
+test('@claim:no-tool-install a normal check never runs tool installers or changes the source mount', async () => {
+  const checked = await checkWithCommandTraps();
+  expect(checked.result.code, checked.result.stderr).toBe(0);
+  expect(await readFile(checked.marker, 'utf8')).toBe('');
+  expect(await readFile(checked.source, 'utf8')).toBe(checked.before);
+});
+
+test('@claim:no-dependency-install a normal check never runs dependency installers or changes the source mount', async () => {
+  const checked = await checkWithCommandTraps();
+  expect(checked.result.code, checked.result.stderr).toBe(0);
+  expect(await readFile(checked.marker, 'utf8')).toBe('');
+  expect(await readFile(checked.source, 'utf8')).toBe(checked.before);
+});
+
+test('@claim:noninteractive-ci every public CI command completes promptly with stdin closed', async () => {
+  const boundary = await mkdtemp(join(tmpdir(), 'lsp-readiness-noninteractive-'));
+  const repository = join(boundary, 'repository');
+  await mkdir(repository);
+  await writeFile(join(repository, 'source.ts'), 'export const checked = true;\n');
+  const runtime = await fakeRuntime(boundary);
+  const environment = { PATH: process.env.PATH ?? '' };
+  const common = ['--image', pinnedImage, '--runtime', runtime, '--output', join(boundary, 'packet.json'), '--key', join(boundary, 'signing.key'), '--json'];
+  for (const args of [
+    ['check', repository, ...common],
+    ['container', repository, ...common],
+    ['demo', '--json'],
+  ]) {
+    const result = await runWithClosedStdin(binary, args, environment);
+    expect(result.code, `${args.join(' ')}: ${result.stderr}`).toBe(0);
+    expect(result.elapsed).toBeLessThan(3_000);
+  }
+  const demo = await runWithClosedStdin(binary, ['demo', '--json'], environment);
+  expect(demo.code, demo.stderr).toBe(0);
+  const packet = join(boundary, 'demo-packet.json');
+  await writeFile(packet, demo.stdout);
+  const verified = await runWithClosedStdin(binary, ['verify', packet, '--json'], environment);
+  expect(verified.code, verified.stderr).toBe(0);
+  expect(verified.stdout).toContain('"valid":true');
+});
+
+test('@claim:signing-key-permissions a first normal check creates its signing key with owner-only permissions', async () => {
+  const checked = await checkWithCommandTraps();
+  expect(checked.result.code, checked.result.stderr).toBe(0);
+  expect((await stat(checked.key)).mode & 0o777).toBe(0o600);
 });
 
 test('@claim:signed-packet the CLI creates a packet whose signature verifies', async () => {

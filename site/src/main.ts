@@ -48,15 +48,15 @@ function landing(): string {
   return shell(`
     <section class="hero contour-field">
       <div class="hero-copy">
-        <p class="eyebrow">Repository preflight · CLI</p>
+        <p class="eyebrow">Repository check · command-line tool</p>
         <h1>Verify tooling before an agent edits</h1>
         <p class="lede">For teams onboarding contributors who need code navigation, diagnostics, formatting, and tests ready before changes begin.</p>
-        <div class="hero-actions"><a class="button primary" href="/demo" data-link>Try it with sample data</a><span>See a finished probe in one click.</span></div>
+        <div class="hero-actions"><a class="button primary" href="/?demo=1" data-link>Try it with sample data</a><span>See a finished probe in one click.</span></div>
         <ul class="facts" aria-label="Product facts"><li>Source stays on your machine</li><li>The demo reloads offline after its first visit</li><li>No account is needed for the free CLI</li></ul>
       </div>
       <figure class="hero-map">
         <img src="/topographic-survey.webp" width="768" height="512" alt="Contour lines connect four survey markers around a repository map." fetchpriority="high" />
-        <figcaption class="terminal compact"><span class="terminal-bar"><i></i><i></i><i></i><b>northstar-api / preflight</b></span><pre><code><span class="muted">$</span> lsp-readiness demo
+        <figcaption class="terminal compact"><span class="terminal-bar"><i></i><i></i><i></i><b>northstar-api / repository check</b></span><pre><code><span class="muted">$</span> lsp-readiness demo
 
 <span class="ok">READY</span> — agent edits may start
 <span class="ok">PASS</span>  TypeScript LSP
@@ -69,12 +69,12 @@ function landing(): string {
     </section>
 
     <section class="preview section-rule" aria-labelledby="preview-title">
-      <div class="section-heading"><p class="eyebrow">Capability packet</p><h2 id="preview-title">Give agents evidence they can read</h2><p>The CLI writes one JSON packet. It records each probe, the repository inventory digest, and an Ed25519 signature.</p></div>
+      <div class="section-heading"><p class="eyebrow">Capability packet</p><h2 id="preview-title">Signed capability packet</h2><p>The CLI writes one JSON packet. It records each probe, the repository inventory digest, and an Ed25519 signature.</p></div>
       ${capabilityTable(sampleCapabilities)}
     </section>
 
     <section id="how" class="route-section section-rule" aria-labelledby="how-title">
-      <div class="section-heading"><p class="eyebrow">Three checks</p><h2 id="how-title">How the preflight works</h2><p>The normal check runs in a network-disabled container made from your digest-pinned development image.</p></div>
+      <div class="section-heading"><p class="eyebrow">Three checks</p><h2 id="how-title">How the repository check works</h2><p>The normal check runs in a network-disabled container made from your digest-pinned development image.</p></div>
       <ol class="route-list">
         <li><span>01</span><div><h3>Scan the repository</h3><p>Detect source languages and declared test commands. Ignore dependencies, build output, and source contents.</p></div></li>
         <li><span>02</span><div><h3>Probe each tool</h3><p>Start each detected language server. Check formatter versions and run the test command.</p></div></li>
@@ -116,14 +116,15 @@ function privacy(): string {
 }
 
 function terms(): string {
-  return shell(`<article class="legal"><p class="eyebrow">Terms · effective 2 September 2026</p><h1>Use the check as one safety signal</h1><p>LSP Readiness Check reports the tools it can observe. A passing result does not guarantee correct code or safe agent changes.</p><h2>Free CLI</h2><p>The open-source CLI is provided under the MIT License. You control where it runs and which test commands it executes.</p><h2>Acceptable use</h2><p>Do not use the service to probe systems you do not own or have permission to test.</p><h2>Contact</h2><p>Questions can be sent to <a href="mailto:support@sociobot.in">support@sociobot.in</a>.</p></article>`);
+  return shell(`<article class="legal"><p class="eyebrow">Terms · effective 2 September 2026</p><h1>Terms for LSP Readiness Check</h1><p>LSP Readiness Check reports the tools it can observe. A passing result does not guarantee correct code or safe agent changes.</p><h2>Free CLI</h2><p>The open-source CLI is provided under the MIT License. You control where it runs and which test commands it executes.</p><h2>Acceptable use</h2><p>Do not use the service to probe systems you do not own or have permission to test.</p><h2>Contact</h2><p>Questions can be sent to <a href="mailto:support@sociobot.in">support@sociobot.in</a>.</p></article>`);
 }
 
 function notFound(): string {
-  return shell(`<section class="not-found contour-field"><p class="eyebrow">Map edge · 404</p><h1>This route is not on the map</h1><p>The address may be old or incomplete.</p><a class="button primary" href="/" data-link>Return home</a></section>`);
+  return shell(`<section class="not-found contour-field"><p class="eyebrow">404</p><h1>Page not found</h1><p>The address may be old or incomplete.</p><a class="button primary" href="/" data-link>Return home</a></section>`);
 }
 
 function currentPath(): string {
+  if (window.location.pathname === '/' && new URLSearchParams(window.location.search).get('demo') === '1') return '/demo';
   const path = window.location.pathname.replace(/\/$/, '') || '/';
   return routes[path] ? path : '/404';
 }
@@ -149,7 +150,11 @@ function navigate(path: string): void {
 }
 
 function bindActions(): void {
-  document.querySelectorAll<HTMLAnchorElement>('[data-link]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); navigate(new URL(link.href).pathname); }));
+  document.querySelectorAll<HTMLAnchorElement>('[data-link]').forEach((link) => link.addEventListener('click', (event) => {
+    event.preventDefault();
+    const url = new URL(link.href);
+    navigate(`${url.pathname}${url.search}`);
+  }));
   document.querySelector('[data-reset]')?.addEventListener('click', () => { localStorage.removeItem('demo:lsp-readiness-check'); location.reload(); });
   document.querySelector('[data-start-real]')?.addEventListener('click', () => localStorage.removeItem('demo:lsp-readiness-check'));
   document.querySelector('[data-run-demo]')?.addEventListener('click', runDemo);

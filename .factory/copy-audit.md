@@ -1,6 +1,6 @@
 # Landing page copy audit
 
-Audit date: 2026-09-02. Counts treat hyphenated terms and prices as one word. UI labels without sentences are listed separately. No sentence exceeds 22 words. No banned word appears.
+Audit date: 2026-09-02. Counts treat hyphenated terms, code identifiers, URLs, and numeric tokens as one word. UI labels and code examples are listed separately. No sentence exceeds 22 words and no banned marketing word appears.
 
 ## First screen
 
@@ -8,36 +8,33 @@ Audit date: 2026-09-02. Counts treat hyphenated terms and prices as one word. UI
 | --- | ---: | --- |
 | Verify tooling before an agent edits | 6 | Pass; job-first headline |
 | For teams onboarding contributors who need code navigation, diagnostics, formatting, and tests ready before changes begin. | 16 | Pass |
-| Try it with sample data | 6 | Pass; primary action |
 | See a finished probe in one click. | 7 | Pass |
-| Source stays on your machine | 5 | Pass |
-| The demo reloads offline after its first visit | 8 | Pass |
-| No account is needed for the free CLI | 8 | Pass |
+| Source stays on your machine | 5 | Covered by `local-operation` |
+| The demo reloads offline after its first visit | 8 | Covered by `offline-demo` |
+| No account is needed for the free CLI | 8 | Covered by `no-account` |
 
-Read-aloud check: “Verify tooling before an agent edits. Try it with sample data to see a finished probe.” This states the job and first action in one breath.
+Read-aloud check: “Verify tooling before an agent edits. Try it with sample data to see a finished probe.” It states the job and first action in one breath.
 
 ## Landing sections
 
 | Copy | Words | Result |
 | --- | ---: | --- |
-| Give agents evidence they can read | 6 | Pass |
-| The CLI writes one JSON packet. | 6 | Pass |
-| It records each probe, the repository inventory digest, and an Ed25519 signature. | 12 | Pass |
-| How the preflight works | 4 | Pass |
-| The normal check runs in a network-disabled container made from your digest-pinned development image. | 14 | Pass |
-| Detect source languages and declared test commands. | 7 | Pass |
-| Ignore dependencies, build output, and source contents. | 7 | Pass |
-| Start each detected language server. | 5 | Pass |
-| Check formatter versions and run the test command. | 8 | Pass |
-| Write a JSON capability packet. | 5 | Pass |
-| Verify its Ed25519 signature before an agent starts work. | 9 | Pass |
-| It does not upload source code or repository file contents. | 10 | Pass |
-| It does not install or update language servers. | 9 | Pass |
-| It does not replace your editor, test runner, or container policy. | 11 | Pass |
+| The CLI writes one JSON packet. | 6 | Covered by `signed-packet` |
+| It records each probe, the repository inventory digest, and an Ed25519 signature. | 12 | Covered by `signed-packet` |
+| The normal check runs in a network-disabled container made from your digest-pinned development image. | 14 | Covered by `local-operation` |
+| Detect source languages and declared test commands. | 7 | Product instruction |
+| Ignore dependencies, build output, and source contents. | 7 | Product instruction |
+| Start each detected language server. | 5 | Product instruction |
+| Check formatter versions and run the test command. | 7 | Product instruction |
+| Write a JSON capability packet. | 5 | Product instruction |
+| Verify its Ed25519 signature before an agent starts work. | 9 | Covered by `signed-packet` |
+| It does not upload source code or repository file contents. | 10 | Covered by `local-operation` |
+| It does not install or update language servers. | 9 | Covered by `no-tool-install` |
+| It does not replace your editor, test runner, or container policy. | 11 | Scope statement |
 
-## Controls and short labels
+## Direct section names and controls
 
-All controls use consistent nouns and direct verbs: `Try it with sample data`, `Run sample probe`, `Download sample JSON`, and `Copy command`.
+Section names: `Signed capability packet`, `How the repository check works`, and `What the CLI does not do`. Controls: `Try it with sample data`, `Run sample probe`, `Download sample JSON`, and `Copy command`. They name their destination or result without slogans or unexplained metaphors.
 
 ## Terminology
 
@@ -48,5 +45,6 @@ All controls use consistent nouns and direct verbs: `Try it with sample data`, `
 | Semantic code process | language server |
 | Repository safety state | readiness |
 | Browser sample | demo |
+| Default isolated operation | repository check |
 
-Catalog description: “Verify code navigation, diagnostics, formatting, and tests before an agent edits your repository.” It is 95 characters and starts with a verb.
+Catalog description: “Verify repository tooling before an agent edits.” It is 46 characters, starts with a verb, and has no marketing words.

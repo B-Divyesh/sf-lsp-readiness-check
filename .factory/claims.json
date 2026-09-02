@@ -26,5 +26,40 @@
     "where": "landing facts, README",
     "test": "npm test -- --grep @claim:offline-demo",
     "sandbox": "new browser context; visit /demo, await service worker, set offline, reload"
+  },
+  {
+    "id": "no-account",
+    "claim": "The free CLI and bundled website demo run without an account.",
+    "where": "landing facts, README sandbox section",
+    "test": "npm test -- --grep @claim:no-account",
+    "sandbox": "fresh browser context opens /?demo=1 with no cookies or storage; CLI demo runs with no credential environment variables and browser requests contain no authentication route"
+  },
+  {
+    "id": "no-tool-install",
+    "claim": "A normal check does not install or update language servers.",
+    "where": "landing scope section",
+    "test": "npm test -- --grep @claim:no-tool-install",
+    "sandbox": "fresh temporary repository; fake container runtime returns a probe while language-server and installer command traps are first on PATH; assert no trap ran and source is unchanged"
+  },
+  {
+    "id": "no-dependency-install",
+    "claim": "A normal check does not install dependencies.",
+    "where": "README privacy and isolation section",
+    "test": "npm test -- --grep @claim:no-dependency-install",
+    "sandbox": "fresh temporary repository; fake container runtime returns a probe while dependency installer command traps are first on PATH; assert no trap ran and source is unchanged"
+  },
+  {
+    "id": "noninteractive-ci",
+    "claim": "The public CLI commands used in CI do not prompt for input.",
+    "where": "README check a repository section",
+    "test": "npm test -- --grep @claim:noninteractive-ci",
+    "sandbox": "fresh temporary repository; run check, container, demo, and verify with stdin closed and assert each exits within three seconds"
+  },
+  {
+    "id": "signing-key-permissions",
+    "claim": "On Linux, the first normal check creates its signing key with owner-only permissions.",
+    "where": "README check a repository section",
+    "test": "npm test -- --grep @claim:signing-key-permissions",
+    "sandbox": "fresh temporary repository and fake runtime; run public check and assert the generated signing key mode is 0600"
   }
 ]
