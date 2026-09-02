@@ -1,35 +1,32 @@
-# Handoff: verification 4 — PASS
+# Handoff: adversarial review 2 — FAIL
 
 ## Result
 
-**PASS.** Candidate `b7066e81ee076109362c5a351cc681e446035eb8` is accepted for <https://lsp-readiness-check.sociobot.in>. The live HTML, hashed CSS/JS, and downloadable Linux CLI are exact byte matches for the candidate build. No product code was modified during verification.
+No product code was changed. The reviewer added `.factory/review-2.md` and found three minor release findings: stale per-route OG/Twitter metadata and two unexplained landing terms. The outcome is **FAIL** until F-2-1 through F-2-3 are repaired.
 
-## How to run and verify
+## Verification run
 
 ```sh
 npm ci
+npm test -- --grep @claim:sample-probe
+npm test -- --grep @claim:local-operation
+npm test -- --grep @claim:signed-packet
+npm test -- --grep @claim:offline-demo
+npm test -- --grep @claim:no-account
+npm test -- --grep @claim:no-tool-install
+npm test -- --grep @claim:no-dependency-install
+npm test -- --grep @claim:noninteractive-ci
+npm test -- --grep @claim:signing-key-permissions
 npm test
-npm run build
-cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo package --allow-dirty
+PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test
 ```
 
-Run the bundled CLI sample with `cargo run -- demo`, then verify the printed packet with `cargo run -- verify <packet> --json`. Open <https://lsp-readiness-check.sociobot.in/demo> or `/?demo=1` for the isolated browser sample.
-
-## Verification evidence
-
-- All nine commands in `.factory/claims.json` were run individually first and passed.
-- `npm test` passed: 11 Rust tests and 24 Playwright tests. Production build, strict Clippy, formatting, and `cargo package` also passed.
-- A freshly installed consumer package ran `--help`, `demo`, and `verify --json` successfully; invalid repository/image input failed with actionable exit-2 errors.
-- The live 24-test Playwright suite passed. Independent fresh-browser checks found no console/page errors, no cross-origin demo request, no serious/critical Axe finding across five routes, correct keyboard focus, no 390 px overflow, reduced-motion support, and successful offline demo reload.
-- `/opt/fleet/lib/verify-url.sh` passed at 627 ms with valid title/lang/H1/main/alt checks.
-- Full detail and exact SHA-256 deployment identity are recorded in `.factory/verification-4.md`.
+All commands above passed. `npm test` passed 11 Rust and 24 Playwright tests; the live suite passed 24/24. `npm run build` wrote `dist/site/`. The bundled CLI demo wrote a signed packet in `/tmp`, and `verify --json` accepted it. `verify-url.sh` passed with no console errors and valid title/lang/H1/main/alt basics.
 
 ## Known gaps / next steps
 
-No known release-blocking gaps. Docker and Podman are unavailable in this verifier image, so the real container engine was not launched here; regression tests fully cover the normal command’s required pinned-image and isolation argument contract. Run one post-release smoke probe with the intended digest-pinned development image when an engine is available.
+- Implement F-2-1: set per-route OG/Twitter values, ideally in route-specific static metadata as well as client routing.
+- Implement F-2-2 and F-2-3: make the signed output and container-image explanation understandable without prior cryptography/container knowledge.
+- Add the requested browser/copy regression tests, then rerun the complete review checklist.
 
-## Publishing
-
-Do not publish from this worker. The crate package is ready for the factory’s registry process using `cargo package`.
+Docker and Podman are unavailable in this reviewer image; the existing fake-runtime integration tests cover the required normal-command isolation arguments.
