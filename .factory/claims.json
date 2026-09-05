@@ -15,10 +15,10 @@
   },
   {
     "id": "signed-packet",
-    "claim": "The CLI writes an Ed25519-signed JSON capability packet.",
+    "claim": "The CLI writes an Ed25519-signed JSON readiness report.",
     "where": "landing preview, how it works, README",
     "test": "npm test -- --grep @claim:signed-packet",
-    "sandbox": "fresh temporary directory; run the bundled CLI demo and verify its packet"
+    "sandbox": "fresh temporary directory; run the bundled CLI demo and verify its readiness report"
   },
   {
     "id": "offline-demo",

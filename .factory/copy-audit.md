@@ -48,4 +48,14 @@ Section names: `Signed JSON readiness report`, `How the repository check works`,
 | Browser sample | demo |
 | Default isolated operation | repository check |
 
+## Supporting surfaces
+
+| Surface | Copy | Words | Result |
+| --- | --- | ---: | --- |
+| Privacy | It reads file names, manifest files, and command output to build a signed JSON readiness report. | 16 | Uses the required term |
+| Demo terminal | Sample readiness report is shown only in this demo. | 9 | Uses the required term |
+| README | The command creates a temporary readiness report and prints its path. | 10 | Uses the required term |
+
+`packet` remains only in code-level names and JSON schema handling. Visitor-facing output is called a readiness report.
+
 Catalog description: “Verify repository tooling before an agent edits.” It is 48 characters, starts with a verb, and has no marketing words.

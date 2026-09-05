@@ -14,7 +14,7 @@ The bundled sample needs no account or repository setup. It includes tiny fixtur
 cargo run -- demo
 ```
 
-The command creates a temporary packet and prints its path. The browser version is available at <https://lsp-readiness-check.sociobot.in/demo>. It uses bundled sample data, stores demo state under `demo:lsp-readiness-check`, and reloads offline after its first visit.
+The command creates a temporary readiness report and prints its path. The browser version is available at <https://lsp-readiness-check.sociobot.in/demo>. It uses bundled sample data, stores demo state under `demo:lsp-readiness-check`, and reloads offline after its first visit.
 
 ## Install
 
@@ -49,7 +49,7 @@ The selected image must be Linux x86-64 with `/bin/sh` and `cp`. Its glibc versi
 
 `lsp-readiness container` remains as a compatibility alias for `check`.
 
-The first check creates `.lsp-readiness/signing.key` with owner-only permissions. Keep that key in your CI secret store if multiple runners must produce packets for the same policy.
+The first check creates `.lsp-readiness/signing.key` with owner-only permissions. Keep that key in your CI secret store if multiple runners must produce readiness reports for the same policy.
 
 By default, the CLI runs the detected test command. Use `--skip-tests` for a fast inventory that cannot return a ready result:
 
