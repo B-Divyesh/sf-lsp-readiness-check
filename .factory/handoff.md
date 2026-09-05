@@ -1,13 +1,15 @@
-# Handoff: M1 repair and acceptance
+# Handoff: M1 repair, acceptance, and verification 5
 
 ## Status
 
-**M1 is accepted.** This is still a free local CLI and static demo. It has no account, server API, SQLite database, billing, GitHub App, or paid offer. M2 is planned only.
+**Verification 5: FAIL with two minor findings and zero untested claims.** The deployed M1 implementation still passes its nine claims, installed CLI checks, 25-test live browser suite, accessibility checks, and performance budgets. The live 404 lacks the standard header/footer and uses metaphor copy; privacy/demo/README copy also uses the old “packet” term instead of the documented “readiness report.” See [verification-5.md](verification-5.md).
+
+This is still a free local CLI and static demo. It has no account, server API, SQLite database, billing, GitHub App, or paid offer. M2 is planned only and is not part of this verdict.
 
 | Record | SHA |
 | --- | --- |
 | Deployed implementation | `b3714c16ec78b14d5d403d7eaa98e5ac0b27ee02` |
-| Documentation update (plan and README) | `db424e808e88e51f2e85aac760904800a56dfed0` |
+| Documentation reviewed by verification 5 | `35b58749f91feac2bc155534be303167e6ad8fd5` |
 
 The static deployment for the implementation used deployment `3e0c28c6-9671-4de2-84cf-e3b87c287205`. Later report-only commits do not change the deployed product image.
 
@@ -79,7 +81,7 @@ Live verification passed:
 - Fresh 1366 px desktop and 390 px phone contexts showed the job (“Verify tooling before an agent edits”), audience, and “Try it with sample data” before scrolling. Neither view overflowed horizontally or logged errors.
 - Downloaded live `index.html`, JavaScript, and CSS SHA-256 values matched `dist/site/` exactly.
 
-Lighthouse was attempted with the supplied Chromium binary but its browser tab crashed before producing a score. This is an environment limitation, not a substituted pass. Bundle sizes remain small: initial JavaScript is 5.13 kB gzip, CSS is 3.68 kB gzip, the self-hosted font is about 67 kB, and the hero WebP is about 120 kB.
+The earlier Lighthouse attempt crashed before producing a score. Verification 5 reran Lighthouse 12.8.2 successfully: performance 99, accessibility 100, best practices 100, SEO 100, LCP 1.8 s, total blocking time 90 ms, and CLS 0. Bundle sizes remain small: initial JavaScript is 5.13 kB gzip, CSS is 3.68 kB gzip, the self-hosted font is about 67 kB, and the hero WebP is about 120 kB.
 
 ## Product-scoped helper resources
 
@@ -90,5 +92,6 @@ Lighthouse was attempted with the supplied Chromium binary but its browser tab c
 
 ## Remaining dependencies and next step
 
+- Repair F-5-1 and F-5-2 in [verification-5.md](verification-5.md), deploy the corrected static output, and rerun the live 404/copy checks before returning M1 to PASS.
 - Customer CI still needs Docker or Podman and a SHA-256-pinned development image containing its own tools and dependencies. Docker is now validated; Podman has not been validated on a real engine.
 - M2 needs factory-provisioned Entra CIAM, a GitHub App, a Sociobot subscription contract, and a product `/data` SQLite mount before any account, private CI, history, or billing capability is built or claimed.
