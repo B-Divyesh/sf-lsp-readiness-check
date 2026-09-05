@@ -99,6 +99,10 @@ npm run build
 
 `npm test` builds the release CLI and site, runs Rust tests, and runs browser claim and accessibility tests. `npm run build:site` writes the static deploy to `dist/site/`. The full build also places the Linux x86-64 CLI at `dist/site/downloads/lsp-readiness-linux-x86_64`.
 
+## Deploy
+
+The factory deploys the built static site from `dist/site/`. Build it with `npm run build`; deployment credentials and DNS remain factory-managed.
+
 Package readiness can be checked without publishing:
 
 ```sh

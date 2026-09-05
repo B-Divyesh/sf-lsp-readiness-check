@@ -2,7 +2,7 @@
 
 **Plan date:** 2026-09-05
 
-**Current milestone:** M1 — **accepted** on 2026-09-05. The deployed implementation is `b3714c16ec78b14d5d403d7eaa98e5ac0b27ee02`; later documentation commits are recorded separately in the handoff.
+**Current milestone:** M1 — **accepted** on 2026-09-05 after the verification-5 repair. The deployed implementation is `748178140e4f46e75bc596086f09da9bfd3605ba`; the deployment documentation baseline is `01102b7be63059becb95b13f47222ebfc274270a`. Later report commits are recorded separately in the handoff.
 **Next milestone:** M2 — authenticated private-CI foundation and subscription (planned; not started).
 
 ## 1. Product contract
@@ -64,7 +64,10 @@ The former blockers were rechecked as observable outcomes; none is merely marked
 3. **F-2-3 — fixed.** Landing and README say that the user chooses the exact development image and explain the SHA-256 address as a way to run the same tools each time.
 4. **Operational validation — fixed.** The private helper ran `lsp-readiness check` through Docker against controlled digest-pinned images: ready exited 0 with a verified packet; missing tools exited 1 with a verified non-ready packet; a sleeping LSP exited 1 with the five-second timeout evidence and a verified packet; a BusyBox runtime mismatch exited 2 with an actionable container error. Each source checksum remained unchanged.
 
-**Result:** the latest review findings and the real-engine requirement are satisfied. M1 is accepted; M2 remains planned only.
+5. **F-5-1 — fixed.** The static-host 404 now includes the shared skip link, wordmark/header, primary navigation, footer, a plain “Page not found” H1, and a return-home action. It still returns HTTP 404. The browser regression opens an unknown address, verifies the shared route structure and recovery action, then returns home.
+6. **F-5-2 — fixed.** Privacy, demo, README, CLI help, and normal CLI completion output use **readiness report** for the signed JSON output. `packet` remains only in internal type/path names and the stable claim id. The visible demo/privacy regression and clean consumer CLI exercise cover the outcome.
+
+**Result:** verification-5’s two minor findings are repaired and rechecked locally and live. M1 is accepted; M2 remains planned only.
 
 ## 3. M1–M3 delivery contract
 

@@ -1,58 +1,29 @@
-# Handoff: M1 repair, acceptance, and verification 5
+# Handoff: M1 acceptance repair
 
 ## Status
 
-**Verification 5: FAIL with two minor findings and zero untested claims.** The deployed M1 implementation still passes its nine claims, installed CLI checks, 25-test live browser suite, accessibility checks, and performance budgets. The live 404 lacks the standard header/footer and uses metaphor copy; privacy/demo/README copy also uses the old “packet” term instead of the documented “readiness report.” See [verification-5.md](verification-5.md).
+**PASS — M1 remains accepted after repairing verification-5.** The free local CLI and static demo now use a shared, plain-language 404 and consistently call their signed output a **readiness report**. There are zero untested public claims.
 
-This is still a free local CLI and static demo. It has no account, server API, SQLite database, billing, GitHub App, or paid offer. M2 is planned only and is not part of this verdict.
-
-| Record | SHA |
+| Record | SHA / identifier |
 | --- | --- |
-| Deployed implementation | `b3714c16ec78b14d5d403d7eaa98e5ac0b27ee02` |
-| Documentation reviewed by verification 5 | `35b58749f91feac2bc155534be303167e6ad8fd5` |
+| Implementation | `748178140e4f46e75bc596086f09da9bfd3605ba` |
+| Documentation deployed with it | `01102b7be63059becb95b13f47222ebfc274270a` |
+| Static Web App deployment | `fb33c0f7-9af2-428f-969a-8a41f8f7373e` |
 
-The static deployment for the implementation used deployment `3e0c28c6-9671-4de2-84cf-e3b87c287205`. Later report-only commits do not change the deployed product image.
+The implementation and documentation commits are intentionally separate. This handoff is a later report-only update; it does not require a new product deployment.
 
 ## What changed
 
-- Added a shared route-metadata manifest and a production prerender step. `/`, `/demo`, `/privacy`, `/terms`, and `/404` now have their own title, description, canonical, Open Graph, and Twitter tags before JavaScript. Client-side navigation updates the same tags.
-- Changed static-host route rewrites to each prerendered document. The test server now applies the same output routing as the deployed static host, rather than Vite's SPA fallback.
-- Rewrote the landing and README to say **signed JSON readiness report** first, explain tamper detection, and explain why the selected image uses a SHA-256 address. Ed25519 remains an implementation detail.
-- Added raw-response plus hydrated-route metadata coverage, visible plain-copy coverage, and an outcome-based locked-container regression that captures the invoked runtime arguments instead of reading source strings.
-- Clarified the real-engine discovery in the README: the selected image must have a glibc version compatible with the installed CLI binary.
-
-## Former findings
-
-| Finding | Current disposition |
-| --- | --- |
-| F-2-1: routed social metadata described the home page | Fixed and live-verified with direct GETs plus raw/hydrated browser regression. |
-| F-2-2: unexplained capability-packet / Ed25519 wording | Fixed; the landing leads with the user outcome and tamper-detection explanation. |
-| F-2-3: unexplained digest-pinned image wording | Fixed; landing and install copy explain selecting the exact image and SHA-256 address. |
-| Earlier F-1 claim, touch-target, mutable-image, default-container, symlink, paid-offer, 404, and lint findings | Remain covered by the nine current claims, Rust isolation suite, 25-test browser suite, static 404 check, and strict Clippy/package checks. No paid offer or checkout is present. |
-
-## Real container-engine evidence
-
-Docker/Podman were absent in the worker. A product-scoped helper, `sf-lsp-readiness-check-qa-vm`, ran the deployed implementation through Docker. It had a private NIC, an explicit deny-all inbound NSG rule, no public IP on the VM, and only a product-named NAT gateway for outbound package/image downloads. It is **deallocated**; no Azure resource was deleted.
-
-The helper cloned implementation SHA `b3714c16ec78b14d5d403d7eaa98e5ac0b27ee02`, built the CLI, and used a localhost registry containing controlled digest-pinned test images. No production product setting, secret, database, or service was accessed.
-
-| Case | Result | Packet/source evidence |
-| --- | --- | --- |
-| Ready | Exit 0 in 1 s | Signed packet verified; `ready: true`; source checksum unchanged. |
-| Non-ready | Exit 1 in 2 s | Signed packet verified; missing LSP/formatter evidence; source checksum unchanged. |
-| LSP timeout | Exit 1 in 8 s | Signed packet verified; `initialize timed out after 5 seconds`; source checksum unchanged. |
-| Runtime error | Exit 2 in under 1 s | Actual Docker runtime failed to load the mounted binary in the BusyBox fixture; source checksum unchanged. |
-
-The four non-sensitive image digests and complete command result are retained in `/work/.evidence/lsp-readiness-check-qa-vm-matrix-ubuntu-summary.txt`. The ready/non-ready/timeout/runtime-error images were all addressed as `localhost:5000/sf-lsp-readiness-check-*@sha256:…` during the run.
-
-The first Bookworm image attempt exposed a glibc 2.39 mismatch before a probe began; it was not counted as a passing test. The successful Ubuntu 24.04 images match the candidate binary's glibc. This is why the README now states the compatibility condition plainly.
+- Replaced the static-host 404 document with the shared skip link, wordmark header, primary navigation, main landmark, footer, page-specific metadata, plain **Page not found** heading, and return-home action. Unknown URLs still return HTTP 404.
+- Replaced visitor-facing “packet” wording with **readiness report** in the demo, privacy page, README, demo guide, claims manifest, CLI help, normal CLI completion output, and signature error. Internal `SignedPacket` names and the stable `signed-packet` claim id remain technical implementation details.
+- Added browser regressions that prove an unknown static URL has the shared structure and takes a visitor home, and that the demo/privacy surfaces show the agreed output term. These assert rendered visitor outcomes, not source-file strings.
+- Added the README deployment note and copied the verb-first catalog description unchanged to `/work/.evidence/catalog-description.txt`.
 
 ## Verification
 
-From a fresh clone of the deployed implementation:
+From a clean clone of documentation SHA `01102b7be63059becb95b13f47222ebfc274270a`, `npm ci` completed and every exact command in `.factory/claims.json` passed:
 
 ```sh
-npm ci
 npm test -- --grep @claim:sample-probe
 npm test -- --grep @claim:local-operation
 npm test -- --grep @claim:signed-packet
@@ -62,36 +33,43 @@ npm test -- --grep @claim:no-tool-install
 npm test -- --grep @claim:no-dependency-install
 npm test -- --grep @claim:noninteractive-ci
 npm test -- --grep @claim:signing-key-permissions
-npm test
-cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo package --allow-dirty
-cargo install --path target/package/lsp-readiness-check-0.1.1 --root <fresh-prefix> --locked
-<fresh-prefix>/bin/lsp-readiness demo --json
-<fresh-prefix>/bin/lsp-readiness verify <packet> --json
 ```
 
-All nine claims passed. The full suite passed with 11 Rust tests and 25 Playwright tests. Strict formatting, Clippy, package verification, and the clean consumer install/demo/verify passed. The installed consumer also rejected mutable `ubuntu:latest` with exit 2 before it tried the named runtime.
+The local full suite passed: **11 Rust tests and 27 Playwright tests**. `npm run build`, TypeScript checks, `cargo fmt --check`, strict Clippy, and `cargo package --allow-dirty` passed. The package contained 58 files (79.9 KiB compressed) and installed into a fresh consumer prefix. The installed CLI exposed helpful help, printed `Signed readiness report`, verified its demo JSON, and rejected a mutable image before runtime startup.
 
-Live verification passed:
+Live checks after deployment:
 
-- `verify-url.sh` reported HTTPS 200, 745 ms cold load, no console errors, `lang=en`, one H1, main, image alt coverage, and named buttons.
-- Direct live GETs returned 200 for `/`, `/demo`, `/privacy`, and `/terms`, each with the correct prerendered metadata. An unknown route returned the designed HTTP 404.
-- `PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test` passed 25/25, including Axe serious/critical checks, keyboard/focus, 390 px layout, reduced motion, offline demo reload, demo reset/isolation, same-origin traffic, and raw/hydrated route metadata.
-- Fresh 1366 px desktop and 390 px phone contexts showed the job (“Verify tooling before an agent edits”), audience, and “Try it with sample data” before scrolling. Neither view overflowed horizontally or logged errors.
-- Downloaded live `index.html`, JavaScript, and CSS SHA-256 values matched `dist/site/` exactly.
+- `/opt/fleet/lib/verify-url.sh` passed: HTTPS 200, 687 ms load, no console errors, `lang=en`, one H1, main landmark, alt coverage, and named buttons.
+- `PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test` passed **27/27**, including Axe serious/critical checks, keyboard/focus, 390 px targets, reduced motion, same-origin traffic, offline demo reload, routes, 404, and links.
+- Fresh 1366×900 desktop and 390×844 phone contexts started at `scrollY = 0`. Both showed the job, audience, and **Try it with sample data** action inside the viewport; phone `scrollWidth` was 390.
+- A fresh live demo context seeded `real:lsp-readiness-check=sentinel`. Running and resetting demo kept that value; **Start for real** removed only `demo:lsp-readiness-check`. Requests stayed same-origin.
+- Root returned 200; an intentional unknown route returned 404 with a header, named navigation, footer, and **Page not found** H1.
+- Lighthouse mobile reported performance **99**, accessibility **100**, best practices **100**, and SEO **100**; FCP 0.9 s, LCP 1.8 s, TBT 110 ms, CLS 0. Initial JavaScript is 5.12 KiB gzip and CSS is 3.68 KiB gzip.
 
-The earlier Lighthouse attempt crashed before producing a score. Verification 5 reran Lighthouse 12.8.2 successfully: performance 99, accessibility 100, best practices 100, SEO 100, LCP 1.8 s, total blocking time 90 ms, and CLS 0. Bundle sizes remain small: initial JavaScript is 5.13 kB gzip, CSS is 3.68 kB gzip, the self-hosted font is about 67 kB, and the hero WebP is about 120 kB.
+## Deployment identity
 
-## Product-scoped helper resources
+The live artifacts exactly match the clean local build:
 
-- `sf-lsp-readiness-check-qa-vm` — `Standard_B2s`, deallocated.
-- `sf-lsp-readiness-check-qa-vm-osdisk`, `sf-lsp-readiness-check-qa-vm-nic`.
-- `sf-lsp-readiness-check-qa-vnet`, `sf-lsp-readiness-check-qa-subnet`, `sf-lsp-readiness-check-qa-nsg` with `deny-all-inbound`.
-- `sf-lsp-readiness-check-qa-nat`, `sf-lsp-readiness-check-qa-nat-pip` for outbound-only helper access.
+| Artifact | SHA-256 |
+| --- | --- |
+| Root HTML | `b696919082e4626639113ce651b5d9719252c243baa2a4860b01dd87b276014d` |
+| Static 404 HTML | `f87d4e8ad1057d5b63d61b935ca3405755a4b2fae2dd3dfb58331ec122c559cb` |
+| JavaScript | `f2bed6f847af466fb0093baee56fa760f99544cd442ae595ed70fc678d7be44f` |
+| CSS | `d9ab7665da6abd91151642632867314f15636b53805bc7b2f738fdeba2ff5639` |
+| Linux CLI | `4e7cc788275bd352a5c91b60ca7606d9b9863a0f33d3205c5cc15b4b03dd9fbd` |
 
-## Remaining dependencies and next step
+The downloaded live CLI ran `demo --json` and `verify --json` successfully and reports version 0.1.1.
 
-- Repair F-5-1 and F-5-2 in [verification-5.md](verification-5.md), deploy the corrected static output, and rerun the live 404/copy checks before returning M1 to PASS.
-- Customer CI still needs Docker or Podman and a SHA-256-pinned development image containing its own tools and dependencies. Docker is now validated; Podman has not been validated on a real engine.
-- M2 needs factory-provisioned Entra CIAM, a GitHub App, a Sociobot subscription contract, and a product `/data` SQLite mount before any account, private CI, history, or billing capability is built or claimed.
+## Docker evidence and deployment shape
+
+The prior product-scoped Docker matrix remains part of the M1 evidence. At implementation `b3714c16ec78b14d5d403d7eaa98e5ac0b27ee02`, a real Docker engine ran the normal command against controlled digest-pinned Ubuntu 24.04 images: ready exited 0 with a verified signed result; non-ready exited 1 with a verified result; an LSP timeout exited 1 with five-second timeout evidence; and a BusyBox runtime mismatch exited 2 without changing source. Every source checksum was unchanged. The non-sensitive matrix summary is retained at `/work/.evidence/lsp-readiness-check-qa-vm-matrix-ubuntu-summary.txt` in the originating worker record.
+
+This repair did not alter container invocation, image validation, source mounts, security flags, or signing; the only Rust changes are user-facing report terminology. Current executable isolation claims passed again. Docker is not installed in this worker, so no new real-engine run was invented or claimed. Podman remains a separate customer-environment compatibility dependency.
+
+The assigned product is a **Static Web App**. It has no Dockerfile, Container App, ACR image, process health endpoint, SQLite database, or `/data` mount. The static deployment preserved its existing product resource and did not create a container service, so `/data` preservation and container-image digest checks are not applicable. The applicable M1 persistence boundary is browser demo storage; its separate `demo:` namespace and real-data sentinel preservation are live-verified above.
+
+## Scope and next steps
+
+M1 ships no account, backend API, tenant data, paid offer, checkout, GitHub App, analytics, or billing call. Tenant isolation, restart persistence, health API, 429/`Retry-After`, billing registration, and subscription entitlement are therefore not M1 checks. The researched $49/repository/month private-CI subscription remains planned for M2 and is not advertised as available.
+
+M2 separately depends on factory-provisioned Entra CIAM, GitHub App registration, Sociobot subscription registration, a product `/data` SQLite mount, tenant isolation, and rate limits. Do not present any of those as shipped before that milestone.
