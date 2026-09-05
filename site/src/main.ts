@@ -1,4 +1,5 @@
 import './style.css';
+import metadata from '../route-metadata.json';
 
 type Status = 'ready' | 'declared' | 'missing' | 'failed';
 type Capability = { kind: string; name: string; command: string; status: Status; evidence: string };
@@ -12,11 +13,11 @@ const sampleCapabilities: Capability[] = [
 ];
 
 const routes: Record<string, { title: string; description: string; render: () => string }> = {
-  '/': { title: 'LSP Readiness Check — verify repository tooling', description: 'Check language servers, formatters, and tests before an agent changes your repository.', render: landing },
-  '/demo': { title: 'Demo — LSP Readiness Check', description: 'Run the LSP Readiness Check sample repository probe.', render: demo },
-  '/privacy': { title: 'Privacy — LSP Readiness Check', description: 'How LSP Readiness Check handles repository and demo data.', render: privacy },
-  '/terms': { title: 'Terms — LSP Readiness Check', description: 'Terms for LSP Readiness Check.', render: terms },
-  '/404': { title: 'Page not found — LSP Readiness Check', description: 'This page does not exist.', render: notFound },
+  '/': { ...metadata['/'], render: landing },
+  '/demo': { ...metadata['/demo'], render: demo },
+  '/privacy': { ...metadata['/privacy'], render: privacy },
+  '/terms': { ...metadata['/terms'], render: terms },
+  '/404': { ...metadata['/404'], render: notFound },
 };
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -64,23 +65,23 @@ function landing(): string {
 <span class="ok">PASS</span>  Formatters
 <span class="ok">PASS</span>  42 tests
 
-<span class="muted">Signed: Ed25519 capability packet</span></code></pre></figcaption>
+<span class="muted">Signed JSON readiness report</span></code></pre></figcaption>
       </figure>
     </section>
 
     <section class="preview section-rule" aria-labelledby="preview-title">
-      <div class="section-heading"><p class="eyebrow">Capability packet</p><h2 id="preview-title">Signed capability packet</h2><p>The CLI writes one JSON packet. It records each probe, the repository inventory digest, and an Ed25519 signature.</p></div>
+      <div class="section-heading"><p class="eyebrow">Readiness report</p><h2 id="preview-title">Signed JSON readiness report</h2><p>The CLI writes one signed JSON readiness report. Its signature makes tampering detectable (Ed25519).</p></div>
       ${capabilityTable(sampleCapabilities)}
     </section>
 
     <section id="how" class="route-section section-rule" aria-labelledby="how-title">
-      <div class="section-heading"><p class="eyebrow">Three checks</p><h2 id="how-title">How the repository check works</h2><p>The normal check runs in a network-disabled container made from your digest-pinned development image.</p></div>
+      <div class="section-heading"><p class="eyebrow">Three checks</p><h2 id="how-title">How the repository check works</h2><p>The normal check uses a network-disabled container made from the exact development image you choose.</p></div>
       <ol class="route-list">
         <li><span>01</span><div><h3>Scan the repository</h3><p>Detect source languages and declared test commands. Ignore dependencies, build output, and source contents.</p></div></li>
         <li><span>02</span><div><h3>Probe each tool</h3><p>Start each detected language server. Check formatter versions and run the test command.</p></div></li>
-        <li><span>03</span><div><h3>Sign the result</h3><p>Write a JSON capability packet. Verify its Ed25519 signature before an agent starts work.</p></div></li>
+        <li><span>03</span><div><h3>Sign the result</h3><p>Write a signed JSON readiness report. Verify the report’s signature before an agent starts work.</p></div></li>
       </ol>
-      <div class="install-strip"><div><p class="eyebrow">Install from source</p><code>cargo install --git https://github.com/B-Divyesh/sf-lsp-readiness-check</code></div><div class="install-actions"><button class="copy-button" data-copy="cargo install --git https://github.com/B-Divyesh/sf-lsp-readiness-check">Copy command</button><a href="/downloads/lsp-readiness-linux-x86_64" download>Download Linux binary</a></div></div>
+      <div class="install-strip"><div><p class="eyebrow">Install from source</p><code>cargo install --git https://github.com/B-Divyesh/sf-lsp-readiness-check</code><p class="install-note">Use an image address with a SHA-256 digest so the same tools run each time.</p></div><div class="install-actions"><button class="copy-button" data-copy="cargo install --git https://github.com/B-Divyesh/sf-lsp-readiness-check">Copy command</button><a href="/downloads/lsp-readiness-linux-x86_64" download>Download Linux binary</a></div></div>
     </section>
 
     <section class="limits section-rule" aria-labelledby="limits-title">
@@ -105,7 +106,7 @@ function demo(): string {
       <div class="demo-layout">
         <div class="terminal" aria-label="Recorded terminal output"><span class="terminal-bar"><i></i><i></i><i></i><b>lsp-readiness demo</b></span><pre id="terminal-output" aria-live="polite" tabindex="0"><code><span class="muted">$</span> lsp-readiness demo
 <span class="muted">Scanning northstar-api…</span></code></pre><div class="terminal-controls"><button class="button terminal-button" data-run-demo>Run sample probe</button><button class="text-button on-dark" data-replay>Replay output</button></div></div>
-        <aside class="demo-summary"><p class="eyebrow">Readiness contract</p><strong class="score">5/5</strong><p>required checks pass</p><dl><div><dt>Languages</dt><dd>TypeScript, Rust</dd></div><div><dt>Packet</dt><dd>Ed25519 signed</dd></div><div><dt>Source digest</dt><dd><code>sha256:6ad036fe…</code></dd></div></dl><a class="button secondary" href="/sample/northstar-api.lsp-readiness.json" download>Download sample JSON</a></aside>
+        <aside class="demo-summary"><p class="eyebrow">Readiness contract</p><strong class="score">5/5</strong><p>required checks pass</p><dl><div><dt>Languages</dt><dd>TypeScript, Rust</dd></div><div><dt>Report</dt><dd>Signed JSON (Ed25519)</dd></div><div><dt>Source digest</dt><dd><code>sha256:6ad036fe…</code></dd></div></dl><a class="button secondary" href="/sample/northstar-api.lsp-readiness.json" download>Download sample JSON</a></aside>
       </div>
       <section class="demo-results" aria-labelledby="results-title"><div class="section-heading"><p class="eyebrow">Probe evidence</p><h2 id="results-title">Each required check passed</h2></div>${capabilityTable(sampleCapabilities)}</section>
     </section>`, true);
@@ -134,7 +135,15 @@ function render(focus = false): void {
   const route = routes[path];
   document.title = route.title;
   document.querySelector('meta[name="description"]')?.setAttribute('content', route.description);
-  document.querySelector('link[rel="canonical"]')?.setAttribute('href', `https://lsp-readiness-check.sociobot.in${path === '/' ? '/' : path}`);
+  const canonical = `https://lsp-readiness-check.sociobot.in${path}`;
+  document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical);
+  document.querySelector('meta[property="og:title"]')?.setAttribute('content', route.title);
+  document.querySelector('meta[property="og:description"]')?.setAttribute('content', route.description);
+  document.querySelector('meta[property="og:url"]')?.setAttribute('content', canonical);
+  document.querySelector('meta[property="og:image"]')?.setAttribute('content', 'https://lsp-readiness-check.sociobot.in/og-image.webp');
+  document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', route.title);
+  document.querySelector('meta[name="twitter:description"]')?.setAttribute('content', route.description);
+  document.querySelector('meta[name="twitter:image"]')?.setAttribute('content', 'https://lsp-readiness-check.sociobot.in/og-image.webp');
   app.innerHTML = route.render();
   document.querySelector('h1')?.setAttribute('tabindex', '-1');
   bindActions();
@@ -181,7 +190,7 @@ async function runDemo(): Promise<void> {
 <span class="ok">PASS</span>  formatter   rustfmt 1.8.0-stable
 <span class="ok">PASS</span>  tests       42 tests passed
 
-<span class="muted">Signature: Ed25519
+<span class="muted">Tamper check: Ed25519 signature
 Sample packet is stored only in this demo.</span></code>`;
 }
 

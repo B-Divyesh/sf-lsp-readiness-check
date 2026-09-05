@@ -2,7 +2,7 @@
 
 Verify code navigation, diagnostics, formatting, and tests before an agent edits your repository.
 
-LSP Readiness Check is a small Rust CLI for teams that onboard contributors into agent-assisted repositories. It detects repository languages and starts each available language server. It checks formatters, finds tests, and writes an Ed25519-signed JSON capability packet.
+LSP Readiness Check is a small Rust CLI for teams that onboard contributors into agent-assisted repositories. It detects repository languages and starts each available language server. It checks formatters, finds tests, and writes a signed JSON readiness report. The report signature makes tampering detectable (Ed25519).
 
 Live site: <https://lsp-readiness-check.sociobot.in>
 
@@ -29,7 +29,7 @@ The factory publishes packages after review. This repository does not publish it
 
 ## Check a repository
 
-Choose the digest-pinned development image that contains your repository tools. Pass it with `--image` or set `LSP_READINESS_IMAGE`:
+Choose the exact development image that contains your repository tools. Use an image address with a SHA-256 digest so the same tools run each time. Pass it with `--image` or set `LSP_READINESS_IMAGE`:
 
 ```sh
 cd your-repository

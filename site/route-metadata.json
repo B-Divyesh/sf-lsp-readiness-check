@@ -1,0 +1,22 @@
+{
+  "/": {
+    "title": "LSP Readiness Check — verify repository tooling",
+    "description": "Check language servers, formatters, and tests before an agent changes your repository."
+  },
+  "/demo": {
+    "title": "Demo — LSP Readiness Check",
+    "description": "Run the LSP Readiness Check sample repository probe."
+  },
+  "/privacy": {
+    "title": "Privacy — LSP Readiness Check",
+    "description": "How LSP Readiness Check handles repository and demo data."
+  },
+  "/terms": {
+    "title": "Terms — LSP Readiness Check",
+    "description": "Terms for LSP Readiness Check."
+  },
+  "/404": {
+    "title": "Page not found — LSP Readiness Check",
+    "description": "This page does not exist."
+  }
+}

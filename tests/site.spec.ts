@@ -5,11 +5,17 @@ import { chmod, mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import routeMetadata from '../site/route-metadata.json' with { type: 'json' };
 
 const exec = promisify(execFile);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173';
 const binary = join(process.cwd(), 'target/release/lsp-readiness');
 const pinnedImage = 'registry.example/readiness@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+const publicRouteMetadata = Object.entries(routeMetadata).filter(([path]) => path !== '/404');
+
+function metaContent(html: string, attribute: 'name' | 'property', value: string): string | undefined {
+  return html.match(new RegExp(`<meta ${attribute}="${value}" content="([^"]*)"`))?.[1];
+}
 
 type ClosedRun = { code: number; stdout: string; stderr: string; elapsed: number };
 
@@ -44,17 +50,18 @@ async function fakeRuntime(directory: string): Promise<string> {
       { kind: 'tests', name: 'Repository tests', command: 'npm test', status: 'ready', evidence: 'fixture response' },
     ], source_digest: 'sha256:fixture',
   });
-  await writeFile(runtime, `#!/bin/sh\n/bin/printf '%s\\n' '${payload}'\n`);
+  await writeFile(runtime, `#!/bin/sh\nif [ -n "${'${LSP_READINESS_CAPTURE:-}'}" ]; then /usr/bin/printf '%s\\n' "$@" > "$LSP_READINESS_CAPTURE"; fi\n/bin/printf '%s\\n' '${payload}'\n`);
   await chmod(runtime, 0o700);
   return runtime;
 }
 
-async function checkWithCommandTraps(): Promise<{ source: string; before: string; marker: string; key: string; result: ClosedRun }> {
+async function checkWithCommandTraps(): Promise<{ source: string; before: string; marker: string; capture: string; key: string; result: ClosedRun }> {
   const boundary = await mkdtemp(join(tmpdir(), 'lsp-readiness-command-traps-'));
   const repository = join(boundary, 'repository');
   const traps = join(boundary, 'traps');
   const source = join(repository, 'source.ts');
   const marker = join(boundary, 'trap-ran');
+  const capture = join(boundary, 'runtime-arguments');
   const key = join(boundary, 'signing.key');
   await mkdir(repository);
   await mkdir(traps);
@@ -70,16 +77,19 @@ async function checkWithCommandTraps(): Promise<{ source: string; before: string
   const result = await runWithClosedStdin(binary, [
     'check', repository, '--image', pinnedImage, '--runtime', runtime,
     '--output', join(boundary, 'packet.json'), '--key', key, '--json',
-  ], { PATH: traps, LSP_READINESS_TRAP_LOG: marker });
-  return { source, before, marker, key, result };
+  ], { PATH: traps, LSP_READINESS_TRAP_LOG: marker, LSP_READINESS_CAPTURE: capture });
+  return { source, before, marker, capture, key, result };
 }
 
 test('landing explains the job and opens the sample in one click', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('h1')).toHaveText('Verify tooling before an agent edits');
   await expect(page.locator('.hero-copy .eyebrow')).toHaveText('Repository check · command-line tool');
-  await expect(page.getByRole('heading', { name: 'Signed capability packet' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Signed JSON readiness report' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'How the repository check works' })).toBeVisible();
+  await expect(page.getByText('Its signature makes tampering detectable (Ed25519).')).toBeVisible();
+  await expect(page.getByText('The normal check uses a network-disabled container made from the exact development image you choose.')).toBeVisible();
+  await expect(page.getByText('Use an image address with a SHA-256 digest so the same tools run each time.')).toBeVisible();
   await page.getByRole('link', { name: 'Try it with sample data' }).click();
   await expect(page).toHaveURL(/\/?demo=1$/);
   await expect(page.getByText('5/5')).toBeVisible();
@@ -130,7 +140,7 @@ test('@claim:sample-probe the shipped fixture runs 42 tests and produces the dis
   await expect(page.locator('#terminal-output')).toContainText('TypeScript language server');
   await expect(page.locator('#terminal-output')).toContainText('Rust language server');
   await expect(page.locator('#terminal-output')).toContainText('42 tests passed');
-  await expect(page.locator('#terminal-output')).toContainText('Signature: Ed25519');
+  await expect(page.locator('#terminal-output')).toContainText('Tamper check: Ed25519 signature');
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['demo:lsp-readiness-check']);
 });
 
@@ -140,7 +150,7 @@ test('container rejects a mutable image before starting a runtime', async () => 
     .rejects.toMatchObject({ stderr: expect.stringContaining('immutable sha256 digest') });
 });
 
-test('@claim:local-operation the CLI has no network client and the demo makes no cross-origin request', async ({ page }) => {
+test('@claim:local-operation normal checks use a locked-down container and the demo makes no cross-origin request', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', (request) => requests.push(request.url()));
   await page.goto('/demo');
@@ -148,14 +158,15 @@ test('@claim:local-operation the CLI has no network client and the demo makes no
   await page.getByRole('button', { name: 'Replay output' }).click();
   const foreign = requests.filter((url) => new URL(url).origin !== new URL(baseURL).origin);
   expect(foreign).toEqual([]);
-  const cargo = await readFile(join(process.cwd(), 'Cargo.toml'), 'utf8');
-  const library = await readFile(join(process.cwd(), 'src/lib.rs'), 'utf8');
-  const command = await readFile(join(process.cwd(), 'src/main.rs'), 'utf8');
-  expect(`${cargo}\n${library}`).not.toMatch(/reqwest|hyper|TcpStream|UdpSocket/);
-  expect(command).toContain('"--network"');
-  expect(command).toContain('"none"');
-  expect(command).toContain('"--cap-drop=ALL"');
-  expect(command).toContain(':/source:ro');
+  const checked = await checkWithCommandTraps();
+  expect(checked.result.code, checked.result.stderr).toBe(0);
+  const runtimeArguments = await readFile(checked.capture, 'utf8');
+  expect(runtimeArguments).toContain('--network\nnone\n');
+  expect(runtimeArguments).toContain('--read-only\n');
+  expect(runtimeArguments).toContain('--cap-drop=ALL\n');
+  expect(runtimeArguments).toContain('--security-opt=no-new-privileges\n');
+  expect(runtimeArguments).toContain(':/source:ro\n');
+  expect(await readFile(checked.source, 'utf8')).toBe(checked.before);
   const symlinkRegressions = await exec('cargo', ['test', 'repository_scan_skips']);
   expect(symlinkRegressions.stdout).toContain('2 passed');
 });
@@ -271,6 +282,32 @@ for (const route of ['/', '/demo', '/privacy', '/terms', '/does-not-exist']) {
   });
 }
 
+test('public routes serve their own social metadata before JavaScript and retain it after hydration', async ({ page, request }) => {
+  for (const [path, metadata] of publicRouteMetadata) {
+    const response = await request.get(path);
+    expect(response.ok(), path).toBe(true);
+    const html = await response.text();
+    const canonical = `https://lsp-readiness-check.sociobot.in${path}`;
+    expect(html).toContain(`<title>${metadata.title}</title>`);
+    expect(metaContent(html, 'name', 'description')).toBe(metadata.description);
+    expect(html).toContain(`<link rel="canonical" href="${canonical}"`);
+    expect(metaContent(html, 'property', 'og:title')).toBe(metadata.title);
+    expect(metaContent(html, 'property', 'og:description')).toBe(metadata.description);
+    expect(metaContent(html, 'property', 'og:url')).toBe(canonical);
+    expect(metaContent(html, 'name', 'twitter:title')).toBe(metadata.title);
+    expect(metaContent(html, 'name', 'twitter:description')).toBe(metadata.description);
+    await page.goto(path);
+    await expect(page).toHaveTitle(metadata.title);
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', metadata.description);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', metadata.title);
+    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', metadata.description);
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', canonical);
+    await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute('content', metadata.title);
+    await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', metadata.description);
+  }
+});
+
 test('each internal link resolves', async ({ page, request }) => {
   await page.goto('/');
   const links = await page.locator('a').evaluateAll((anchors) => [...new Set(anchors.map((anchor) => anchor.getAttribute('href')).filter((href): href is string => Boolean(href?.startsWith('/'))))]);
@@ -317,9 +354,9 @@ test('mobile demo keeps its banner touch targets and terminal keyboard accessibl
 test('static hosting routes known pages through the app and returns a real 404 otherwise', async () => {
   const config = JSON.parse(await readFile(join(process.cwd(), 'site/public/staticwebapp.config.json'), 'utf8'));
   expect(config.routes).toEqual(expect.arrayContaining([
-    expect.objectContaining({ route: '/demo', rewrite: '/index.html' }),
-    expect.objectContaining({ route: '/privacy', rewrite: '/index.html' }),
-    expect.objectContaining({ route: '/terms', rewrite: '/index.html' }),
+    expect.objectContaining({ route: '/demo', rewrite: '/demo/index.html' }),
+    expect.objectContaining({ route: '/privacy', rewrite: '/privacy/index.html' }),
+    expect.objectContaining({ route: '/terms', rewrite: '/terms/index.html' }),
   ]));
   expect(config.navigationFallback).toBeUndefined();
   expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html', statusCode: 404 });

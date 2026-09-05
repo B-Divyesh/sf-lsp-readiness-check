@@ -1,6 +1,6 @@
 # Landing page copy audit
 
-Audit date: 2026-09-02. Counts treat hyphenated terms, code identifiers, URLs, and numeric tokens as one word. UI labels and code examples are listed separately. No sentence exceeds 22 words and no banned marketing word appears.
+Audit date: 2026-09-05. Counts treat hyphenated terms, code identifiers, URLs, and numeric tokens as one word. UI labels and code examples are listed separately. No sentence exceeds 22 words and no banned marketing word appears.
 
 ## First screen
 
@@ -19,29 +19,30 @@ Read-aloud check: “Verify tooling before an agent edits. Try it with sample da
 
 | Copy | Words | Result |
 | --- | ---: | --- |
-| The CLI writes one JSON packet. | 6 | Covered by `signed-packet` |
-| It records each probe, the repository inventory digest, and an Ed25519 signature. | 12 | Covered by `signed-packet` |
-| The normal check runs in a network-disabled container made from your digest-pinned development image. | 14 | Covered by `local-operation` |
+| The CLI writes one signed JSON readiness report. | 8 | Covered by `signed-packet` |
+| Its signature makes tampering detectable (Ed25519). | 6 | Covered by `signed-packet` |
+| The normal check uses a network-disabled container made from the exact development image you choose. | 15 | Covered by `local-operation` |
 | Detect source languages and declared test commands. | 7 | Product instruction |
 | Ignore dependencies, build output, and source contents. | 7 | Product instruction |
 | Start each detected language server. | 5 | Product instruction |
 | Check formatter versions and run the test command. | 7 | Product instruction |
-| Write a JSON capability packet. | 5 | Product instruction |
-| Verify its Ed25519 signature before an agent starts work. | 9 | Covered by `signed-packet` |
+| Write a signed JSON readiness report. | 7 | Product instruction |
+| Verify the report’s signature before an agent starts work. | 9 | Covered by `signed-packet` |
+| Use an image address with a SHA-256 digest so the same tools run each time. | 15 | Covered by `local-operation` |
 | It does not upload source code or repository file contents. | 10 | Covered by `local-operation` |
 | It does not install or update language servers. | 9 | Covered by `no-tool-install` |
 | It does not replace your editor, test runner, or container policy. | 11 | Scope statement |
 
 ## Direct section names and controls
 
-Section names: `Signed capability packet`, `How the repository check works`, and `What the CLI does not do`. Controls: `Try it with sample data`, `Run sample probe`, `Download sample JSON`, and `Copy command`. They name their destination or result without slogans or unexplained metaphors.
+Section names: `Signed JSON readiness report`, `How the repository check works`, and `What the CLI does not do`. Controls: `Try it with sample data`, `Run sample probe`, `Download sample JSON`, and `Copy command`. They name their destination or result without slogans or unexplained metaphors.
 
 ## Terminology
 
 | Concept | Required term |
 | --- | --- |
 | One verification run | probe |
-| Signed JSON output | capability packet |
+| Signed JSON output | readiness report |
 | Semantic code process | language server |
 | Repository safety state | readiness |
 | Browser sample | demo |
