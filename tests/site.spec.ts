@@ -122,7 +122,7 @@ test('@claim:no-account the website and CLI demo run without credentials or an a
   expect(requests.every((url) => new URL(url).origin === new URL(baseURL).origin)).toBe(true);
 });
 
-test('@claim:sample-probe the shipped fixture runs 42 tests and produces the displayed signed packet', async ({ page }) => {
+test('@claim:sample-probe the shipped fixture runs 42 tests and produces the displayed signed readiness report', async ({ page }) => {
   const binary = join(process.cwd(), 'target/release/lsp-readiness');
   const fixtureTests = await exec('npm', ['test', '--prefix', 'examples/northstar-api']);
   expect(fixtureTests.stdout).toContain('# pass 42');
@@ -217,10 +217,10 @@ test('@claim:signing-key-permissions a first normal check creates its signing ke
   expect((await stat(checked.key)).mode & 0o777).toBe(0o600);
 });
 
-test('@claim:signed-packet the CLI creates a packet whose signature verifies', async () => {
+test('@claim:signed-packet the CLI creates a readiness report whose signature verifies', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'lsp-readiness-claim-'));
   const result = await exec(join(process.cwd(), 'target/release/lsp-readiness'), ['demo']);
-  const match = result.stdout.match(/Signed packet: (.+)/);
+  const match = result.stdout.match(/Signed readiness report: (.+)/);
   expect(match).not.toBeNull();
   const packet = JSON.parse(await readFile(match![1].trim(), 'utf8'));
   expect(packet.algorithm).toBe('Ed25519');
@@ -281,6 +281,29 @@ for (const route of ['/', '/demo', '/privacy', '/terms', '/does-not-exist']) {
     expect(actionableErrors).toEqual([]);
   });
 }
+
+test('the static 404 keeps the site navigation, footer, and a clear recovery path', async ({ page }) => {
+  const response = await page.goto('/does-not-exist');
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole('link', { name: 'LSP Readiness Check home' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  await expect(page.getByRole('contentinfo')).toContainText('Verify language tooling before agent edits.');
+  await expect(page.getByRole('link', { name: 'Privacy', exact: true })).toHaveCount(2);
+  await expect(page.getByRole('link', { name: 'Terms', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Return home' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Verify tooling before an agent edits');
+});
+
+test('the demo and privacy page name the signed output a readiness report', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: 'Run sample probe' }).click();
+  await expect(page.locator('#terminal-output')).toContainText('Sample readiness report is shown only in this demo.');
+  await page.goto('/privacy');
+  await expect(page.locator('main')).toContainText('build a signed JSON readiness report');
+  await expect(page.locator('main')).toContainText('signing key and readiness report');
+});
 
 test('public routes serve their own social metadata before JavaScript and retain it after hydration', async ({ page, request }) => {
   for (const [path, metadata] of publicRouteMetadata) {

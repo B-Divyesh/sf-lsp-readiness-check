@@ -106,14 +106,14 @@ function demo(): string {
       <div class="demo-layout">
         <div class="terminal" aria-label="Recorded terminal output"><span class="terminal-bar"><i></i><i></i><i></i><b>lsp-readiness demo</b></span><pre id="terminal-output" aria-live="polite" tabindex="0"><code><span class="muted">$</span> lsp-readiness demo
 <span class="muted">Scanning northstar-api…</span></code></pre><div class="terminal-controls"><button class="button terminal-button" data-run-demo>Run sample probe</button><button class="text-button on-dark" data-replay>Replay output</button></div></div>
-        <aside class="demo-summary"><p class="eyebrow">Readiness contract</p><strong class="score">5/5</strong><p>required checks pass</p><dl><div><dt>Languages</dt><dd>TypeScript, Rust</dd></div><div><dt>Report</dt><dd>Signed JSON (Ed25519)</dd></div><div><dt>Source digest</dt><dd><code>sha256:6ad036fe…</code></dd></div></dl><a class="button secondary" href="/sample/northstar-api.lsp-readiness.json" download>Download sample JSON</a></aside>
+        <aside class="demo-summary"><p class="eyebrow">Readiness contract</p><strong class="score">5/5</strong><p>required checks pass</p><dl><div><dt>Languages</dt><dd>TypeScript, Rust</dd></div><div><dt>Readiness report</dt><dd>Signed JSON (Ed25519)</dd></div><div><dt>Source digest</dt><dd><code>sha256:6ad036fe…</code></dd></div></dl><a class="button secondary" href="/sample/northstar-api.lsp-readiness.json" download>Download sample JSON</a></aside>
       </div>
       <section class="demo-results" aria-labelledby="results-title"><div class="section-heading"><p class="eyebrow">Probe evidence</p><h2 id="results-title">Each required check passed</h2></div>${capabilityTable(sampleCapabilities)}</section>
     </section>`, true);
 }
 
 function privacy(): string {
-  return shell(`<article class="legal"><p class="eyebrow">Policy · effective 2 September 2026</p><h1>Your repository stays on your machine</h1><p>LSP Readiness Check is a local command-line tool. It reads file names, manifest files, and command output to build a capability packet.</p><h2>Data the free CLI handles</h2><p>Normal checks run repository commands only inside a network-disabled container. The CLI skips source-tree symlinks and keeps your signing key on the host.</p><p>The CLI stores its signing key and output in paths you choose. It sends no repository data to us.</p><h2>Demo data</h2><p>The website demo uses bundled sample data. It stores only the demo state under the <code>demo:</code> browser storage prefix.</p><h2>Contact</h2><p>Questions can be sent to <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p></article>`);
+  return shell(`<article class="legal"><p class="eyebrow">Policy · effective 2 September 2026</p><h1>Your repository stays on your machine</h1><p>LSP Readiness Check is a local command-line tool. It reads file names, manifest files, and command output to build a signed JSON readiness report.</p><h2>Data the free CLI handles</h2><p>Normal checks run repository commands only inside a network-disabled container. The CLI skips source-tree symlinks and keeps your signing key on the host.</p><p>The CLI stores its signing key and readiness report in paths you choose. It sends no repository data to us.</p><h2>Demo data</h2><p>The website demo uses bundled sample data. It stores only the demo state under the <code>demo:</code> browser storage prefix.</p><h2>Contact</h2><p>Questions can be sent to <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p></article>`);
 }
 
 function terms(): string {
@@ -191,7 +191,7 @@ async function runDemo(): Promise<void> {
 <span class="ok">PASS</span>  tests       42 tests passed
 
 <span class="muted">Tamper check: Ed25519 signature
-Sample packet is stored only in this demo.</span></code>`;
+Sample readiness report is shown only in this demo.</span></code>`;
 }
 
 function reducedMotion() { return matchMedia('(prefers-reduced-motion: reduce)').matches; }

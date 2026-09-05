@@ -30,7 +30,7 @@ enum Commands {
         /// Container runtime command
         #[arg(long, default_value = "docker")]
         runtime: String,
-        /// Capability packet output path
+        /// Readiness report output path
         #[arg(short, long, default_value = ".lsp-readiness.json")]
         output: PathBuf,
         /// Ed25519 private key path; created on first use
@@ -39,7 +39,7 @@ enum Commands {
         /// Skip the test command and produce a non-ready inventory
         #[arg(long)]
         skip_tests: bool,
-        /// Print only the signed JSON packet
+        /// Print only the signed JSON readiness report
         #[arg(long)]
         json: bool,
     },
@@ -54,7 +54,7 @@ enum Commands {
         /// Container runtime command
         #[arg(long, default_value = "docker")]
         runtime: String,
-        /// Capability packet output path on the host
+        /// Readiness report output path on the host
         #[arg(short, long, default_value = ".lsp-readiness.json")]
         output: PathBuf,
         /// Ed25519 private key path on the host; created on first use
@@ -63,7 +63,7 @@ enum Commands {
         /// Skip the test command and produce a non-ready inventory
         #[arg(long)]
         skip_tests: bool,
-        /// Print only the signed JSON packet
+        /// Print only the signed JSON readiness report
         #[arg(long)]
         json: bool,
     },
@@ -78,13 +78,13 @@ enum Commands {
     },
     /// Run a deterministic probe against bundled sample repository data
     Demo {
-        /// Write the sample packet into a new temporary directory
+        /// Write the sample readiness report into a new temporary directory
         #[arg(long)]
         json: bool,
     },
-    /// Verify an Ed25519 signature in a capability packet
+    /// Verify an Ed25519 signature in a readiness report
     Verify {
-        /// Signed capability packet
+        /// Signed readiness report
         packet: PathBuf,
         /// Print the verification result as JSON
         #[arg(long)]
@@ -129,7 +129,7 @@ fn run() -> Result<ExitCode> {
             } else {
                 print_report(&packet);
                 println!("\nDemo — sample data, nothing is saved to your repository.");
-                println!("Signed packet: {}", output.display());
+                println!("Signed readiness report: {}", output.display());
             }
             Ok(ExitCode::SUCCESS)
         }
@@ -251,7 +251,7 @@ fn run_container(
     } else {
         print_report(&packet);
         println!("\nIsolated probe: {runtime} / network disabled / read-only source");
-        println!("Signed packet: {}", output.display());
+        println!("Signed readiness report: {}", output.display());
     }
     Ok(if container_code == 0 {
         ExitCode::SUCCESS

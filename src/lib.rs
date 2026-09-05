@@ -246,7 +246,7 @@ pub fn verify(packet: &SignedPacket) -> Result<()> {
             &serde_json::to_vec(&packet.payload)?,
             &Signature::from_bytes(&signature),
         )
-        .map_err(|_| anyhow!("signature does not match the capability packet"))
+        .map_err(|_| anyhow!("signature does not match the readiness report"))
 }
 
 fn walk_source_files(root: &Path) -> Result<Vec<PathBuf>> {
