@@ -2,8 +2,8 @@
 
 **Plan date:** 2026-09-05
 
-**Current milestone:** M1 — functional core is implemented and tested; M1 is **not yet release-accepted** because the latest adversarial review is FAIL.
-**Next milestone:** M1 repair and operational verification (not M2).
+**Current milestone:** M1 — **accepted** on 2026-09-05. The deployed implementation is `b3714c16ec78b14d5d403d7eaa98e5ac0b27ee02`; later documentation commits are recorded separately in the handoff.
+**Next milestone:** M2 — authenticated private-CI foundation and subscription (planned; not started).
 
 ## 1. Product contract
 
@@ -40,36 +40,37 @@ Out of scope throughout M1–M3: hosting language servers, installing or upgradi
 - `lsp-readiness demo` probes the shipped `examples/northstar-api` fixture through the inspection engine, records TypeScript and Rust LSP capabilities, two formatters, 42 fixture tests, and an Ed25519-signed JSON packet. `verify --json` validates the packet.
 - `lsp-readiness check`/`container` require a SHA-256-pinned image and build a Docker/Podman invocation with no network, read-only root/source, dropped capabilities, no-new-privileges, and temporary work paths. The host creates and retains the signing key.
 - The static site provides a one-click isolated demo (`/?demo=1` or `/demo`), a persistent reset/exit banner, local `demo:lsp-readiness-check` storage, offline reload after the first visit, privacy/terms pages, a designed 404, and no cross-origin demo request.
+- `/`, `/demo`, `/privacy`, and `/terms` are prerendered with their own title, description, canonical, Open Graph, and Twitter metadata before JavaScript. Client navigation updates the same metadata.
 - The nine public claims are present in [claims.json](claims.json) and have tagged browser/CLI tests. The functional, isolation-argument, accessibility, mobile, route, and package checks are in [tests/site.spec.ts](../tests/site.spec.ts) and [tests/cli_isolation.rs](../tests/cli_isolation.rs).
 
-On 2026-09-05, this planner ran `npm ci`, `npm test` (**11 Rust tests and 24 Playwright tests passed**), `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo package --allow-dirty`. The live suite also passed: `PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test` (**24/24**). `verify-url.sh` reported HTTP 200, no console errors, `lang=en`, one H1, a main landmark, no missing image alt text or unlabeled buttons, and a 572 ms load in this run.
+On 2026-09-05, a fresh clone at the deployed implementation ran all nine exact claim commands, `npm test` (**11 Rust tests and 25 Playwright tests passed**), `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo package --allow-dirty`, and a fresh `cargo install` consumer demo/verify. The live suite also passed: `PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test` (**25/25**). `verify-url.sh` reported HTTP 200, no console errors, `lang=en`, one H1, a main landmark, no missing image alt text or unlabeled buttons, and a 745 ms load in this run.
 
 ### What is demonstrated, not yet proven end to end
 
 | Area | Evidence | Limit of the evidence |
 | --- | --- | --- |
-| Disposable-container boundary | Fake-runtime tests assert the exact Docker/Podman flags, source mount, pinned-image validation, host signing, command traps, and source immutability. | Neither Docker nor Podman is installed in this worker. No real digest-pinned development image has completed a customer-like `check` run here. |
+| Disposable-container boundary | Fake-runtime tests assert the exact Docker/Podman flags, source mount, pinned-image validation, host signing, command traps, and source immutability. A real Docker matrix on the product-named private helper passed ready, non-ready, LSP-timeout, and runtime-error outcomes against digest-pinned images; all source checksums were unchanged and valid packets verified. | Docker is validated once against controlled Ubuntu 24.04 test images. Podman and arbitrary customer images remain customer-environment compatibility work; the image must be able to run the installed CLI binary. |
 | Bundled demo | The fixture executes and the packet verifies locally; the browser replay uses shipped sample data. | It proves only the trusted `northstar-api` sample. It does not prove an arbitrary customer repository, container image, test command, or policy. |
 | Signed packet | Packet integrity and tamper rejection are tested. | The product has no policy service or identity binding that says which team/key/repository may rely on a packet. |
 | Privacy boundary | Current CLI has no network client and the browser demo made same-origin requests only. | This is the current no-server product only. It does not establish the future account/history data boundary. |
-| Prior release verification | [verification-4.md](verification-4.md) records a PASS for commit `b7066e8`. | The later [review-2.md](review-2.md) is the current release gate and records FAIL; its open findings supersede a blanket “accepted” label. |
+| Prior review verification | [review-2.md](review-2.md) was the current release gate and recorded FAIL. | Its three copy/metadata findings are repaired and reverified below; its earlier findings remain covered by the current claim and browser suites. |
 
-### Exact M1 blockers and pending verification
+### M1 repair and acceptance record
 
-These are the current blockers; none is silently treated as finished.
+The former blockers were rechecked as observable outcomes; none is merely marked fixed.
 
-1. **F-2-1 — truthful static route metadata.** A direct HTTP GET to `/demo`, `/privacy`, and `/terms` still returns the home page title, description, canonical URL, Open Graph URL/title/description, and Twitter title/description. Client-side title/canonical updates do not fix social crawlers. Add route-specific/prerendered HTML metadata, test both raw HTTP and hydrated routes, then rerun review.
-2. **F-2-2 — unexplained output terminology.** The landing still says “Signed: Ed25519 capability packet,” “repository inventory digest,” and “Verify its Ed25519 signature” without first explaining the user outcome. Use a plain outcome such as “signed JSON readiness report,” explain that the signature makes tampering detectable, and retain Ed25519 as implementation detail.
-3. **F-2-3 — unexplained image terminology.** The landing still says “digest-pinned development image” without explaining that the user selects the exact image address so the same tools run each time. Rewrite the landing and installation explanation in plain language; retain the SHA-256 requirement in the CLI.
-4. **Operational validation gap.** Run `lsp-readiness check` against an actual digest-pinned Linux x86-64 development image in an environment with Docker or Podman. Verify ready, not-ready, timeout, and runtime-failure paths; check that the source stays unchanged and the host-created packet verifies. This is required before claiming normal checks work end to end beyond fake-runtime contract coverage.
+1. **F-2-1 — fixed.** The static build emits per-route HTML under `/demo`, `/privacy`, and `/terms`; static-host routing serves it. The new browser regression reads raw response metadata before JavaScript and checks it again after hydration. Live direct GETs returned the correct title, description, canonical, Open Graph, and Twitter values.
+2. **F-2-2 — fixed.** Landing copy now leads with “Signed JSON readiness report,” explains that its signature makes tampering detectable, and leaves Ed25519 as the implementation detail. The visible browser assertion and copy audit cover the wording.
+3. **F-2-3 — fixed.** Landing and README say that the user chooses the exact development image and explain the SHA-256 address as a way to run the same tools each time.
+4. **Operational validation — fixed.** The private helper ran `lsp-readiness check` through Docker against controlled digest-pinned images: ready exited 0 with a verified packet; missing tools exited 1 with a verified non-ready packet; a sleeping LSP exited 1 with the five-second timeout evidence and a verified packet; a BusyBox runtime mismatch exited 2 with an actionable container error. Each source checksum remained unchanged.
 
-The latest review is therefore **FAIL**, despite passing unit/browser/package checks. M1 must repair the three review findings and record the real-engine smoke test before it can be marked accepted.
+**Result:** the latest review findings and the real-engine requirement are satisfied. M1 is accepted; M2 remains planned only.
 
 ## 3. M1–M3 delivery contract
 
 ### M1 — free local readiness proof, demo, and release repairs
 
-**Status:** implemented core; review/operational acceptance pending.
+**Status:** accepted on 2026-09-05.
 
 **Routes and commands:** `/`, `/?demo=1`, `/demo`, `/privacy`, `/terms`, `/404`; `lsp-readiness check`, `container`, `demo`, and `verify`.
 
@@ -184,7 +185,7 @@ Every persistence query takes `organization_id` from verified server-side identi
 
 | Dependency | Current status | Needed by | What must be true before it is claimed |
 | --- | --- | --- | --- |
-| Docker or Podman plus a customer/team digest-pinned Linux x86-64 development image | Required for normal `check`; unavailable in this worker | M1 | A real-engine smoke demonstrates the CLI against the image. No daemon credential is requested or recorded here. |
+| Docker or Podman plus a customer/team digest-pinned Linux x86-64 development image | Required for normal `check`; Docker validated on a controlled private helper | M1 | Customer images must contain the requested tools and a glibc version compatible with the installed CLI binary. Podman remains a customer-environment dependency, not a claimed M1 validation. |
 | Customer repository tools/tests | Customer-controlled | M1+ | The selected image contains tools/dependencies; the CLI must not install them or mutate source. |
 | Static-hosting deployment | Present at the live URL | M1 | Repaired route metadata must be deployed and independently reviewed. |
 | Sociobot Entra CIAM configuration | Not present in this product | M2 | Factory provisions the product integration; authenticated flows and tenant authorization tests pass. |
@@ -198,10 +199,10 @@ No external dependency is an implemented capability today. Billing, messaging, H
 
 | Risk/unknown | Retirement experiment | Decision boundary |
 | --- | --- | --- |
-| Locked-down runtime arguments differ across Docker/Podman or break common development images | Run the M1 smoke matrix against one controlled digest-pinned image on both available runtimes, including ready/non-ready/timeout paths. | Do not advertise normal checks as end-to-end verified until it passes. |
+| Locked-down runtime arguments differ across Docker/Podman or break common development images | Docker passed the ready/non-ready/timeout/runtime-error matrix on controlled digest-pinned images. Run the same matrix on a customer Podman environment before claiming Podman runtime validation. | Docker normal checks are end-to-end validated; Podman remains unvalidated. |
 | Packet capability evidence can contain more data than intended | Use a sentinel in a fixture source/test output; assert upload allowlist excludes it and reject oversized evidence. | No M2 persistence until the test passes. |
 | CIAM/GitHub installation cannot provide safe repository-level authorization | Test two organizations, two installations, forged/replayed webhook, and ID guessing. | No private repository/history claim until all reject correctly. |
 | The $49 price cannot be provisioned through the allowed billing path | Obtain an approved Sociobot subscription test contract and run a test entitlement lifecycle. | Keep paid copy absent; do not substitute a one-time unlock or direct provider checkout. |
 | A repository owner will not trust a report without source upload | Pilot the local packet + CI artifact flow with 3–5 team repositories and measure successful onboarding PRs. | Revisit packet fields/policy UX only after privacy and isolation tests hold. |
 
-**Sequence:** repair/verify M1 → independent M1 PASS → M2 identity, tenant storage, opt-in packet upload, and subscription → independent M2 PASS → M3 policy gate/history. Future capability is never a current public promise.
+**Sequence:** M1 accepted → M2 identity, tenant storage, opt-in packet upload, and subscription → independent M2 PASS → M3 policy gate/history. Future capability is never a current public promise.

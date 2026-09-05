@@ -45,7 +45,7 @@ lsp-readiness check . --runtime podman
 
 The container has no network, Linux capabilities, or writable root. It receives a read-only source mount and copies that source into temporary storage. The host signs the returned inventory, so the signing key is never mounted into the container. Mutable image tags are rejected before a runtime starts.
 
-The selected image must be Linux x86-64 with glibc, `/bin/sh`, and `cp`. It must contain the language tools and dependencies you want checked.
+The selected image must be Linux x86-64 with `/bin/sh` and `cp`. Its glibc version must be compatible with the installed CLI binary. It must contain the language tools and dependencies you want checked.
 
 `lsp-readiness container` remains as a compatibility alias for `check`.
 
