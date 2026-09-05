@@ -69,7 +69,7 @@ cargo install --path target/package/lsp-readiness-check-0.1.1 --root <fresh-pref
 <fresh-prefix>/bin/lsp-readiness verify <packet> --json
 ```
 
-All nine claims passed. The full suite passed with 11 Rust tests and 25 Playwright tests. Strict formatting, Clippy, package verification, and the clean consumer install/demo/verify passed.
+All nine claims passed. The full suite passed with 11 Rust tests and 25 Playwright tests. Strict formatting, Clippy, package verification, and the clean consumer install/demo/verify passed. The installed consumer also rejected mutable `ubuntu:latest` with exit 2 before it tried the named runtime.
 
 Live verification passed:
 
