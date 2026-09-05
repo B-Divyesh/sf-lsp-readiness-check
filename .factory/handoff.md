@@ -1,14 +1,24 @@
-# Handoff: M1 acceptance repair
+# Handoff: independent verification 6
 
 ## Status
 
-**PASS — M1 remains accepted after repairing verification-5.** The free local CLI and static demo now use a shared, plain-language 404 and consistently call their signed output a **readiness report**. There are zero untested public claims.
+**PASS — M1 independently verified with 0 findings and 0 untested claims.** The free local CLI, static demo, accessibility paths, package, and deployed runtime all pass. The full evidence and earlier-finding disposition are in [verification-6.md](verification-6.md).
 
 | Record | SHA / identifier |
 | --- | --- |
 | Implementation | `748178140e4f46e75bc596086f09da9bfd3605ba` |
-| Documentation deployed with it | `01102b7be63059becb95b13f47222ebfc274270a` |
+| Documentation reviewed | `2006c75a7c7784e982e3cf8869b1a31366eed090` |
 | Static Web App deployment | `fb33c0f7-9af2-428f-969a-8a41f8f7373e` |
+
+## Verification 6
+
+- Fresh clone at `2006c75`: all nine exact claim commands passed; `npm test` passed 11 Rust and 27 Playwright tests; build, formatting, strict Clippy, and `cargo package` passed.
+- Fresh consumer prefix: package install, help/version, demo, report verification, missing-image recovery, and mutable-image rejection passed.
+- Live: Playwright passed 27/27; `verify-url.sh` passed; fresh desktop/phone first screens, demo/reset/exit isolation, keyboard/focus, reduced motion, 200% text, offline/update, routes, links, legal pages, and the intentional 404 passed.
+- Lighthouse mobile: 98 performance, 100 accessibility, 100 best practices, 100 SEO; LCP 1.81 s, TBT 136 ms, CLS 0.
+- Root HTML, static 404, JavaScript, CSS, and Linux CLI hashes match the canonical local build and the hashes already recorded below.
+
+This is a report-only verification. Product code was not modified and no deployment was needed.
 
 The implementation and documentation commits are intentionally separate. This handoff is a later report-only update; it does not require a new product deployment.
 
