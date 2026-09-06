@@ -1,14 +1,14 @@
 # Verify the M2 private CI foundation — verification 7
 
-**Date:** 2026-09-06  
-**Live URL:** <https://lsp-readiness-check.sociobot.in>  
-**Milestone:** M2 product-owned foundation  
-**Implementation reviewed:** `2428fcb82bd9af430b8bc98bb1d01421c5660eff`  
-**Verification-only commit:** `a011cc3e31863c8d56b01ce1b24701919bb3af7e`  
-**Documentation reviewed:** `8da11e5a107bdfffa18489164266931dc17605bc`  
-**Verdict:** **PASS**  
-**Findings:** **0**  
-**Untested claims:** **0**
+- **Date:** 2026-09-06
+- **Live URL:** <https://lsp-readiness-check.sociobot.in>
+- **Milestone:** M2 product-owned foundation
+- **Implementation reviewed:** `2428fcb82bd9af430b8bc98bb1d01421c5660eff`
+- **Verification-only commit:** `a011cc3e31863c8d56b01ce1b24701919bb3af7e`
+- **Documentation reviewed:** `8da11e5a107bdfffa18489164266931dc17605bc`
+- **Verdict:** **PASS**
+- **Findings:** **0**
+- **Untested claims:** **0**
 
 ## Decision
 
