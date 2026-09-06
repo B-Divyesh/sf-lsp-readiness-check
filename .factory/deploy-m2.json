@@ -5,7 +5,7 @@
   "dockerfile": "server/Dockerfile",
   "port": 8080,
   "data_dir": "/data",
-  "database_path": "/data/lsp-readiness.db",
+  "database_path": "/data/lsp-readiness-v2.db",
   "min_replicas": 1,
   "max_replicas": 1,
   "health_path": "/healthz",
@@ -23,5 +23,6 @@
     "GITHUB_APP_PRIVATE_KEY_PEM"
   ],
   "sqlite_journal_mode": "DELETE",
-  "notes": "Keep SQLite on the product-specific /data share and keep exactly one replica. Rollback journaling is required on Azure Files. Billing registration is external and has no guessed runtime setting."
+  "sqlite_vfs": "unix-dotfile",
+  "notes": "Keep SQLite on the product-specific /data share and keep exactly one replica. Rollback journaling plus dot-file locks are required on Azure Files. The v2 file replaced an initialization-only file from the failed first rollout; no user data existed. Billing registration is external and has no guessed runtime setting."
 }

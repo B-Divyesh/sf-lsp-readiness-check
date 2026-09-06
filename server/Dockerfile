@@ -15,7 +15,7 @@ RUN apt-get update \
     && chown app:app /data
 COPY --from=builder /app/target/release/lsp-readiness-api /usr/local/bin/lsp-readiness-api
 USER app
-ENV DATABASE_PATH=/data/lsp-readiness.db \
+ENV DATABASE_PATH=/data/lsp-readiness-v2.db \
     PORT=8080 \
     RUST_LOG=info
 EXPOSE 8080

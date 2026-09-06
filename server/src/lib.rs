@@ -25,7 +25,7 @@ use jsonwebtoken::{
 use lsp_readiness_check::{SCHEMA, SignedPacket, verify};
 use rand::{RngCore, rngs::OsRng};
 use reqwest::Client;
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -202,6 +202,18 @@ fn validate_https_url(value: &str, name: &str) -> anyhow::Result<String> {
 }
 
 impl Database {
+    fn open_connection(path: &Path) -> rusqlite::Result<Connection> {
+        // The production database lives on the fleet's Azure Files mount.
+        // SQLite's default fcntl locks are not reliable through SMB, while
+        // the dot-file VFS coordinates the single allowed replica with a
+        // lock file on that same durable mount.
+        Connection::open_with_flags_and_vfs(
+            path,
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
+            "unix-dotfile",
+        )
+    }
+
     pub fn open(path: impl AsRef<Path>) -> anyhow::Result<Self> {
         let path = path.as_ref().to_path_buf();
         if let Some(parent) = path.parent() {
@@ -211,7 +223,7 @@ impl Database {
             path: Arc::new(path),
         };
         {
-            let connection = Connection::open(db.path.as_ref())?;
+            let connection = Self::open_connection(db.path.as_ref())?;
             connection.pragma_update(None, "busy_timeout", 10_000)?;
             connection.pragma_update(None, "journal_mode", "DELETE")?;
             connection.pragma_update(None, "synchronous", "FULL")?;
@@ -221,7 +233,7 @@ impl Database {
     }
 
     fn connection(&self) -> anyhow::Result<Connection> {
-        let connection = Connection::open(self.path.as_ref())?;
+        let connection = Self::open_connection(self.path.as_ref())?;
         connection.pragma_update(None, "foreign_keys", "ON")?;
         connection.pragma_update(None, "busy_timeout", 10_000)?;
         Ok(connection)
@@ -247,7 +259,7 @@ impl Database {
             std::fs::create_dir_all(parent)?;
         }
         let source = self.connection()?;
-        let mut target = Connection::open(destination)?;
+        let mut target = Self::open_connection(destination)?;
         let backup = rusqlite::backup::Backup::new(&source, &mut target)?;
         backup.run_to_completion(128, Duration::from_millis(10), None)?;
         drop(backup);
@@ -256,7 +268,7 @@ impl Database {
     }
 
     pub fn restore(source: &Path, destination: &Path) -> anyhow::Result<()> {
-        let source_connection = Connection::open(source)?;
+        let source_connection = Self::open_connection(source)?;
         let integrity: String =
             source_connection.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
         if integrity != "ok" {
