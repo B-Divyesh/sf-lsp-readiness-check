@@ -1,11 +1,21 @@
-# Handoff: M2 verification 7
+# Handoff: strict review 4 — M2
 
-Independent QA passed the deployed M2 product-owned foundation with **0 findings and 0 untested claims**. The reviewed runtime implementation is `2428fcb82bd9af430b8bc98bb1d01421c5660eff`; verification-only changes are at `a011cc3e31863c8d56b01ce1b24701919bb3af7e`; the documentation reviewed began at `8da11e5a107bdfffa18489164266931dc17605bc`.
+**PASS — 0 findings and 0 untested claims.** Strict review 4 independently rechecked M2 at implementation `2428fcb82bd9af430b8bc98bb1d01421c5660eff`; documentation/test head is `a536fcd620ae9a56b1a018b743e20aced12478d4`.
 
-From a fresh checkout, all 14 exact claim commands passed. `npm test` passed 4 API unit tests, 11 CLI/library tests, and 38 Playwright tests. Build, type checks, formatting, strict Clippy, npm audit, Cargo packaging, a clean consumer install, and the live downloadable CLI passed. The live suite passed 32 tests with 6 correctly skipped local-auth tests.
+From a fresh clone, all 14 declared claim commands passed. `npm test` passed 4 API unit tests, 11 CLI/library tests, and 38 Playwright tests. Build, formatting, strict Clippy, audit, Cargo packaging, a package-staging consumer install, the live downloadable CLI, desktop/phone demo, live API health/429 behavior, and the 32-pass live Playwright suite passed. The static HTML, JS, and CSS exactly matched the live deployment.
 
-Fresh desktop and phone checks passed the first-screen, one-click sample, persistent demo label, reset/exit isolation, keyboard, touch-target, reduced-motion, route, legal, offline/update, accessibility, privacy, and designed-404 requirements. Lighthouse mobile scored 99 performance and 100 for accessibility, best practices, and SEO. Local process restart preserved a tenant row in SQLite; the live API returned healthy schema version 1 and a real 429 with `Retry-After`. The live static assets and Linux CLI matched the local candidate build byte for byte.
+Current milestone: M2's product-owned API and account foundation. M3 policy decisions, GitHub PR status, and readiness-history differences remain future scope.
 
-Hosted CIAM sign-in, a real GitHub App installation, and the **$49 per repository per month** recurring subscription remain separate operator dependencies. They are shown as unavailable and are not claimed as working; no checkout or hosted entitlement is exposed. M3 policy decisions, PR checks, and history differences remain future scope.
+The only remaining work is external operator setup, not a product defect: Sociobot Entra CIAM registration and hosted auth QA; GitHub App registration/install QA; and registration plus lifecycle QA for the recurring **$49 per repository/month** Sociobot subscription. No hosted sign-in, GitHub installation, checkout, or entitlement is claimed working; no one-time purchase is substituted.
 
-Full evidence and reproduction details are in [verification-7.md](verification-7.md). Builder and deployment details remain in [handoff-m2.md](handoff-m2.md).
+Run locally:
+
+```sh
+npm ci
+npm test
+npm run build
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo package -p lsp-readiness-check --locked --allow-dirty
+PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test
+```
