@@ -22,5 +22,6 @@
     "GITHUB_APP_SLUG",
     "GITHUB_APP_PRIVATE_KEY_PEM"
   ],
-  "notes": "Keep SQLite on the product-specific /data share and keep exactly one replica. Billing registration is external and has no guessed runtime setting."
+  "sqlite_journal_mode": "DELETE",
+  "notes": "Keep SQLite on the product-specific /data share and keep exactly one replica. Rollback journaling is required on Azure Files. Billing registration is external and has no guessed runtime setting."
 }

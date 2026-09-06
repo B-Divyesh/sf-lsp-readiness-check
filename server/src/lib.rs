@@ -210,6 +210,12 @@ impl Database {
         let db = Self {
             path: Arc::new(path),
         };
+        {
+            let connection = Connection::open(db.path.as_ref())?;
+            connection.pragma_update(None, "busy_timeout", 10_000)?;
+            connection.pragma_update(None, "journal_mode", "DELETE")?;
+            connection.pragma_update(None, "synchronous", "FULL")?;
+        }
         db.migrate()?;
         Ok(db)
     }
@@ -217,8 +223,7 @@ impl Database {
     fn connection(&self) -> anyhow::Result<Connection> {
         let connection = Connection::open(self.path.as_ref())?;
         connection.pragma_update(None, "foreign_keys", "ON")?;
-        connection.pragma_update(None, "busy_timeout", 5_000)?;
-        connection.pragma_update(None, "journal_mode", "WAL")?;
+        connection.pragma_update(None, "busy_timeout", 10_000)?;
         Ok(connection)
     }
 

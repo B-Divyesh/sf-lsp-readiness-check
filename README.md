@@ -148,7 +148,7 @@ npm run build
 
 The factory deploys the built static site from `dist/site/`. Build it with `npm run build`; deployment credentials and DNS remain factory-managed.
 
-The API image builds from `server/Dockerfile`. Its durable deployment contract is in `.factory/deploy-m2.json`. Do not run SQLite with multiple replicas or without the `/data` mount.
+The API image builds from `server/Dockerfile`. Its durable deployment contract is in `.factory/deploy-m2.json`. Do not run SQLite with multiple replicas or without the `/data` mount. SQLite uses rollback journaling because WAL locks are not reliable on Azure Files.
 
 Package readiness can be checked without publishing:
 
