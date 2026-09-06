@@ -71,10 +71,10 @@
   },
   {
     "id": "packet-upload-no-source",
-    "claim": "The private API accepts signed readiness reports and rejects source-shaped fields or secret-like evidence.",
+    "claim": "The private API accepts signed readiness reports and rejects requests over 64 KB, source-shaped fields, or secret-like evidence.",
     "where": "private repository setup, privacy, README",
     "test": "npm test -- --grep @claim:packet-upload-no-source",
-    "sandbox": "fresh SQLite database; upload the shipped signed report, reject an added source_files field, and confirm rejected source markers are absent from export"
+    "sandbox": "fresh SQLite database; upload the shipped signed report, reject an added source_files field and a request over 64 KB, then confirm rejected source markers are absent from export"
   },
   {
     "id": "export-delete",

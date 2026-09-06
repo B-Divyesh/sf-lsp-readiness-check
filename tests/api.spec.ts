@@ -74,6 +74,12 @@ test('@claim:packet-upload-no-source uploads accept a signed report and reject s
   });
   expect(wrongToken.status()).toBe(401);
 
+  const oversized = await request.post(`${apiBase}/repositories/${repository.id}/runs`, {
+    headers: { Authorization: `Report ${repository.report_token}` },
+    data: { external_run_id: 'x'.repeat(70_000), report },
+  });
+  expect(oversized.status(), await oversized.text()).toBe(413);
+
   const accepted = await request.post(`${apiBase}/repositories/${repository.id}/runs`, {
     headers: { Authorization: `Report ${repository.report_token}` },
     data: { pull_request: 17, external_run_id: 'github-1001', report },
