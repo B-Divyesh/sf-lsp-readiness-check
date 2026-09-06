@@ -129,7 +129,9 @@ test('the authenticated app loads repository policy and CI token controls from t
 test('@claim:rate-limit repeated authenticated requests return 429 with Retry-After', async ({ request }) => {
   let limited = null;
   for (let attempt = 0; attempt < 45; attempt += 1) {
-    const response = await request.get(`${apiBase}/session`, { headers: auth('rate-limit-team') });
+    const response = await request.get(`${apiBase}/session`, {
+      headers: { ...auth('rate-limit-team'), 'X-Forwarded-For': '203.0.113.45' },
+    });
     if (response.status() === 429) {
       limited = response;
       break;

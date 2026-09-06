@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     path::{Path, PathBuf},
     sync::{
         Arc, Mutex,
@@ -709,7 +709,10 @@ async fn authenticate_request(
     mut request: Request,
     next: Next,
 ) -> Response {
-    if let Err(retry) = state.limiter.check(&format!("ip:{}", address.ip())) {
+    if let Err(retry) = state
+        .limiter
+        .check(&format!("ip:{}", request_ip(request.headers(), address)))
+    {
         return rate_limited(retry);
     }
     let token = match bearer_token(request.headers()) {
@@ -735,6 +738,21 @@ async fn authenticate_request(
     }
     request.extensions_mut().insert(user);
     next.run(request).await
+}
+
+fn request_ip(headers: &HeaderMap, address: SocketAddr) -> String {
+    ["x-envoy-external-address", "x-forwarded-for"]
+        .iter()
+        .find_map(|name| {
+            headers
+                .get(*name)
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.split(',').next())
+                .map(str::trim)
+                .and_then(|value| value.parse::<IpAddr>().ok())
+        })
+        .unwrap_or_else(|| address.ip())
+        .to_string()
 }
 
 fn rate_limited(retry: u64) -> Response {
@@ -818,8 +836,12 @@ async fn health(State(state): State<AppState>) -> Result<Json<Value>, ApiError> 
 async fn public_config(
     State(state): State<AppState>,
     ConnectInfo(address): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
 ) -> Result<Json<PublicConfig>, ApiError> {
-    if let Err(retry) = state.limiter.check(&format!("public:{}", address.ip())) {
+    if let Err(retry) = state
+        .limiter
+        .check(&format!("public:{}", request_ip(&headers, address)))
+    {
         return Err(ApiError::rate_limited(retry));
     }
     Ok(Json(state.public))
@@ -1115,7 +1137,10 @@ async fn upload_run(
     headers: HeaderMap,
     Json(upload): Json<RunUpload>,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
-    if let Err(retry) = state.limiter.check(&format!("upload-ip:{}", address.ip())) {
+    if let Err(retry) = state
+        .limiter
+        .check(&format!("upload-ip:{}", request_ip(&headers, address)))
+    {
         return Err(ApiError::rate_limited(retry));
     }
     let token = headers
