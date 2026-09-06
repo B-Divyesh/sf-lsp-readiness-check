@@ -15,6 +15,22 @@
     "title": "Terms — LSP Readiness Check",
     "description": "Terms for LSP Readiness Check."
   },
+  "/sign-in": {
+    "title": "Sign in — LSP Readiness Check",
+    "description": "Sign in to connect a private repository to LSP Readiness Check."
+  },
+  "/app": {
+    "title": "Private CI setup — LSP Readiness Check",
+    "description": "Set up private repository readiness checks."
+  },
+  "/app/repositories": {
+    "title": "Repositories — LSP Readiness Check",
+    "description": "View private repositories connected to LSP Readiness Check."
+  },
+  "/app/billing": {
+    "title": "Billing — LSP Readiness Check",
+    "description": "Review the private CI subscription status and price."
+  },
   "/404": {
     "title": "Page not found — LSP Readiness Check",
     "description": "This page does not exist."

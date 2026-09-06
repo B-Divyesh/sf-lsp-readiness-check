@@ -7,6 +7,9 @@ const config = JSON.parse(readFileSync(join(dist, 'staticwebapp.config.json'), '
 const rewrites = new Map((config.routes ?? [])
   .filter((route) => route.rewrite)
   .map((route) => [route.route, route.rewrite]));
+const wildcardRewrites = (config.routes ?? [])
+  .filter((route) => route.rewrite && route.route.endsWith('/*'))
+  .map((route) => ({ prefix: route.route.slice(0, -1), rewrite: route.rewrite }));
 const notFound = config.responseOverrides?.['404']?.rewrite ?? '/404.html';
 const types = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -15,7 +18,9 @@ const types = {
 };
 
 function fileFor(pathname) {
-  const rewritten = rewrites.get(pathname) ?? pathname;
+  const rewritten = rewrites.get(pathname)
+    ?? wildcardRewrites.find((route) => pathname.startsWith(route.prefix))?.rewrite
+    ?? pathname;
   const relative = rewritten === '/' ? '/index.html' : rewritten;
   const file = resolve(dist, `.${relative}`);
   if (!file.startsWith(`${dist}/`) || !existsSync(file)) return undefined;

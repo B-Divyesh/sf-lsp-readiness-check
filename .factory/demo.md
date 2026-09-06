@@ -5,6 +5,7 @@
 - Sample: `northstar-api`, a TypeScript and Rust repository with two fixture language servers, two fixture formatters, and 42 passing tests.
 - Reset: choose **Reset demo** in the persistent website banner. **Start for real** clears demo storage and returns home. The CLI creates a new directory under the operating system temporary directory for each process.
 - Browser storage namespace: `demo:lsp-readiness-check`. Demo mode never reads or writes any other application namespace.
+- M2 boundary: demo routes never call the private API, CIAM, GitHub, or billing. Account state uses a separate browser-session namespace and cannot be reached from the demo controls.
 - Source fixture: [`examples/northstar-api`](../examples/northstar-api). `lsp-readiness demo` executes this trusted fixture's TAP tests and bundled tools through the inspection engine used inside a normal check's sandbox. The website replay and downloadable readiness report are a signed record of that probe.
 
 The website demo and CLI run without an account. The website makes no network request outside the product origin. The CLI prints the temporary readiness report path so tests can inspect and verify it.

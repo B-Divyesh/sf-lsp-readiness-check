@@ -1,0 +1,12 @@
+PRAGMA foreign_keys = OFF;
+DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS runs;
+DROP TABLE IF EXISTS policies;
+DROP TABLE IF EXISTS repositories;
+DROP TABLE IF EXISTS github_connect_states;
+DROP TABLE IF EXISTS github_installations;
+DROP TABLE IF EXISTS memberships;
+DROP TABLE IF EXISTS organizations;
+DROP TABLE IF EXISTS users;
+DELETE FROM schema_migrations WHERE version = 1;
+PRAGMA foreign_keys = ON;

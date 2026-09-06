@@ -1,0 +1,18 @@
+{
+  "slug": "lsp-readiness-check",
+  "name": "LSP Readiness Check Private CI",
+  "price_minor": 4900,
+  "currency": "USD",
+  "price_type": "subscription",
+  "recurring_interval": "month",
+  "billing_unit": "repository",
+  "return_url": "https://lsp-readiness-check.sociobot.in/app/billing",
+  "price_evidence": ".factory/brief.json monetization: $49/repository/month",
+  "paid_features": [
+    "private CI checks",
+    "policy templates",
+    "readiness history"
+  ],
+  "license_validation_path": null,
+  "operator_dependency": "Register a recurring Sociobot subscription contract and provide its entitlement validation path; do not use the one-time license API."
+}

@@ -1,0 +1,26 @@
+{
+  "resource_name": "sf-lsp-readiness-check-api",
+  "image_prefix": "sf-lsp-readiness-check-api",
+  "origin": "https://lsp-readiness-check-api.sociobot.in",
+  "dockerfile": "server/Dockerfile",
+  "port": 8080,
+  "data_dir": "/data",
+  "database_path": "/data/lsp-readiness.db",
+  "min_replicas": 1,
+  "max_replicas": 1,
+  "health_path": "/healthz",
+  "metrics_path": "/metrics",
+  "required_operator_settings": [
+    "CIAM_ISSUER",
+    "CIAM_AUDIENCE",
+    "CIAM_CLIENT_ID",
+    "CIAM_AUTHORIZE_URL",
+    "CIAM_TOKEN_URL",
+    "CIAM_JWKS_URL",
+    "CIAM_SCOPE",
+    "GITHUB_APP_ID",
+    "GITHUB_APP_SLUG",
+    "GITHUB_APP_PRIVATE_KEY_PEM"
+  ],
+  "notes": "Keep SQLite on the product-specific /data share and keep exactly one replica. Billing registration is external and has no guessed runtime setting."
+}

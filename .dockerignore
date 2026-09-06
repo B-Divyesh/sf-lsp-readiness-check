@@ -1,0 +1,7 @@
+target
+dist
+node_modules
+.git
+test-results
+playwright-report
+.factory/*.png

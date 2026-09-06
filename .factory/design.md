@@ -33,6 +33,8 @@ Spacing follows an 8px base: 8, 16, 24, 32, 48, 64, 96. Major sections use broad
 
 The first screen is an asymmetric two-column survey sheet: job and action on the left, a generated contour landscape behind a real terminal recording on the right. Below it, one continuous route line links the three steps. Results use a capability matrix rather than feature cards. At 390px, the terminal follows the copy and map marginalia becomes a quiet background.
 
+M2 account screens keep the same field-sheet hierarchy. Repository rows read as survey entries, policy controls form one continuous checklist, and setup dependencies use an amber margin rule instead of modal prompts. Destructive account deletion uses the existing red token and an explicit confirmation. Loading, unavailable, error, and signed-out states occupy the same inset panel so the page does not shift.
+
 ## Motion
 
 On first view, a survey line draws once in 700ms and result rows enter from their originating terminal edge in 180ms. No motion loops. With `prefers-reduced-motion: reduce`, drawing is removed and state changes are instant. Scroll behavior is native.

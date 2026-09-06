@@ -1,0 +1,33 @@
+[package]
+name = "lsp-readiness-api"
+version = "0.1.0"
+edition = "2024"
+description = "Tenant-scoped API for LSP Readiness Check private CI"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "lsp-readiness-api"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+axum = "0.8"
+base64 = "0.22"
+jsonwebtoken = "9.3"
+lsp-readiness-check = { path = ".." }
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.37", features = ["backup", "bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+tokio = { version = "1.47", features = ["macros", "rt-multi-thread", "signal"] }
+tower-http = { version = "0.6", features = ["cors", "limit"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+url = "2.5"
+
+[dev-dependencies]
+tempfile = "3.20"
+tower = { version = "0.5", features = ["util"] }

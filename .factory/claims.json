@@ -61,5 +61,40 @@
     "where": "README check a repository section",
     "test": "npm test -- --grep @claim:signing-key-permissions",
     "sandbox": "fresh temporary repository and fake runtime; run public check and assert the generated signing key mode is 0600"
+  },
+  {
+    "id": "tenant-isolation",
+    "claim": "Private repository, policy, and run queries are limited to the signed-in organization.",
+    "where": "private app, privacy, README",
+    "test": "npm test -- --grep @claim:tenant-isolation",
+    "sandbox": "fresh SQLite database; two test identities in separate organizations; create one private repository and reject cross-organization ID guessing"
+  },
+  {
+    "id": "packet-upload-no-source",
+    "claim": "The private API accepts signed readiness reports and rejects source-shaped fields or secret-like evidence.",
+    "where": "private repository setup, privacy, README",
+    "test": "npm test -- --grep @claim:packet-upload-no-source",
+    "sandbox": "fresh SQLite database; upload the shipped signed report, reject an added source_files field, and confirm rejected source markers are absent from export"
+  },
+  {
+    "id": "export-delete",
+    "claim": "An organization owner can export or delete the organization's stored product data.",
+    "where": "privacy, README",
+    "test": "npm test -- --grep @claim:export-delete",
+    "sandbox": "fresh SQLite database; create a repository and policy, export them, delete the organization, and confirm a new session has no prior repositories"
+  },
+  {
+    "id": "rate-limit",
+    "claim": "The private API limits repeated requests and returns HTTP 429 with Retry-After.",
+    "where": "README operations",
+    "test": "npm test -- --grep @claim:rate-limit",
+    "sandbox": "local API with a bounded fixed-window allowance; repeat authenticated requests until 429 and assert a positive Retry-After header"
+  },
+  {
+    "id": "subscription-registration-pending",
+    "claim": "The planned private CI offer is $49 per repository each month and cannot be purchased before external registration and QA.",
+    "where": "landing pricing, billing route, terms, README",
+    "test": "npm test -- --grep @claim:subscription-registration-pending",
+    "sandbox": "fresh browser context; assert the exact monthly price and unavailable status, with no checkout link"
   }
 ]

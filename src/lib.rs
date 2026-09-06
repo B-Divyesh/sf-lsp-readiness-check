@@ -17,6 +17,7 @@ use std::{
 pub const SCHEMA: &str = "https://lsp-readiness-check.sociobot.in/schema/v1";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Capability {
     pub kind: String,
     pub name: String,
@@ -35,6 +36,7 @@ pub enum CheckStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct ProbePayload {
     pub schema: String,
     pub repository: String,
@@ -46,6 +48,7 @@ pub struct ProbePayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SignedPacket {
     pub payload: ProbePayload,
     pub algorithm: String,

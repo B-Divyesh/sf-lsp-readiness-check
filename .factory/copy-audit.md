@@ -1,6 +1,6 @@
 # Landing page copy audit
 
-Audit date: 2026-09-05. Counts treat hyphenated terms, code identifiers, URLs, and numeric tokens as one word. UI labels and code examples are listed separately. No sentence exceeds 22 words and no banned marketing word appears.
+Audit date: 2026-09-06. Counts treat hyphenated terms, code identifiers, URLs, and numeric tokens as one word. UI labels and code examples are listed separately. No sentence exceeds 22 words and no banned marketing word appears.
 
 ## First screen
 
@@ -32,10 +32,15 @@ Read-aloud check: “Verify tooling before an agent edits. Try it with sample da
 | It does not upload source code or repository file contents. | 10 | Covered by `local-operation` |
 | It does not install or update language servers. | 9 | Covered by `no-tool-install` |
 | It does not replace your editor, test runner, or container policy. | 11 | Scope statement |
+| Subscriptions are not open yet. | 5 | Covered by `subscription-registration-pending` |
+| CIAM, GitHub App, and billing registration must pass product QA first. | 11 | Named operator dependencies |
+| The free local CLI stays available without an account. | 9 | Covered by `no-account` |
 
 ## Direct section names and controls
 
-Section names: `Signed JSON readiness report`, `How the repository check works`, and `What the CLI does not do`. Controls: `Try it with sample data`, `Run sample probe`, `Download sample JSON`, and `Copy command`. They name their destination or result without slogans or unexplained metaphors.
+Section names: `Signed JSON readiness report`, `How the repository check works`, `What the CLI does not do`, and `Private checks for each repository`. Controls: `Try it with sample data`, `Run sample probe`, `Download sample JSON`, `Copy command`, and `Check setup status`. They name their destination or result without slogans or unexplained metaphors.
+
+Pricing fragments: `$49 per repository each month`, `Private CI checks`, `Repository policy templates`, and `Readiness history`. The exact recurring offer and unavailable state are covered by `subscription-registration-pending`.
 
 ## Terminology
 
@@ -47,6 +52,8 @@ Section names: `Signed JSON readiness report`, `How the repository check works`,
 | Repository safety state | readiness |
 | Browser sample | demo |
 | Default isolated operation | repository check |
+| Hosted paid work | private CI |
+| Account boundary | organization |
 
 ## Supporting surfaces
 

@@ -2,8 +2,9 @@
 
 **Plan date:** 2026-09-05
 
-**Current milestone:** M1 — **accepted** on 2026-09-05 after the verification-5 repair. The deployed implementation is `748178140e4f46e75bc596086f09da9bfd3605ba`; the deployment documentation baseline is `01102b7be63059becb95b13f47222ebfc274270a`. Later report commits are recorded separately in the handoff.
-**Next milestone:** M2 — authenticated private-CI foundation and subscription (planned; not started).
+**Accepted baseline:** M1 — **accepted** on 2026-09-05. The deployed M1 implementation is `748178140e4f46e75bc596086f09da9bfd3605ba`.
+**Current milestone:** M2 — implementation complete locally on 2026-09-06; hosted identity, GitHub App, and subscription acceptance remain pending named operator dependencies and independent QA.
+**Next milestone:** M3 begins only after M2 receives independent acceptance.
 
 ## 1. Product contract
 
@@ -27,9 +28,9 @@ The opportunity is a release gate for usable semantic tooling, rather than anoth
 
 ### Monetisation and deliberate limits
 
-The current public product is free: a Rust CLI, a bundled sample demo, and static documentation. It has **no account, API, paid plan, checkout, history service, GitHub App, or sign-in**.
+The free Rust CLI and bundled sample remain available without an account. M2 adds an independently deployable private API and account routes. The hosted identity, GitHub App, checkout, and entitlement paths remain closed until their external registrations pass real product QA.
 
-The researched future offer is **$49/repository/month** for private CI checks, policy templates, and readiness history. It is planned for M2; it must not be displayed or described as available before a real subscription integration is registered, tested, and accepted.
+The researched offer is **$49/repository/month** for private CI checks, policy templates, and readiness history. Public copy states the exact recurring price and that subscriptions are not open. There is no checkout link and no entitlement claim before a real subscription integration is registered, tested, and accepted.
 
 Out of scope throughout M1–M3: hosting language servers, installing or upgrading tools/dependencies, an IDE, autonomous dependency upgrades, uploading source code, AI features, and direct payment-provider integration.
 
@@ -42,6 +43,17 @@ Out of scope throughout M1–M3: hosting language servers, installing or upgradi
 - The static site provides a one-click isolated demo (`/?demo=1` or `/demo`), a persistent reset/exit banner, local `demo:lsp-readiness-check` storage, offline reload after the first visit, privacy/terms pages, a designed 404, and no cross-origin demo request.
 - `/`, `/demo`, `/privacy`, and `/terms` are prerendered with their own title, description, canonical, Open Graph, and Twitter metadata before JavaScript. Client navigation updates the same metadata.
 - The nine public claims are present in [claims.json](claims.json) and have tagged browser/CLI tests. The functional, isolation-argument, accessibility, mobile, route, and package checks are in [tests/site.spec.ts](../tests/site.spec.ts) and [tests/cli_isolation.rs](../tests/cli_isolation.rs).
+
+### What M2 implements pending hosted acceptance
+
+- `server/` is a Rust/Axum service with reversible SQLite migrations for users, organizations, memberships, GitHub installations, repositories, policies, readiness runs, and subscriptions. Its deployment contract pins one replica and `/data/lsp-readiness.db`.
+- CIAM access tokens are verified with RS256, exact issuer, audience, expiry, and configured JWKS. A first valid identity creates one organization and owner membership. Release builds cannot enable the local test identity mode.
+- Every repository, policy, run export, and delete query derives `organization_id` from verified server identity. Outcome tests create two organizations and reject cross-tenant repository IDs, policies, and run export.
+- Signed report ingestion has a 64 KB body limit, strict JSON schemas, Ed25519 verification, field length limits, source-digest validation, and rejection of extra source fields or secret-like evidence.
+- Owners can export or delete their organization data. SQLite migration reversal, restart persistence, backup, restore, health, structured request logs, request IDs, security headers, and `429` plus `Retry-After` are tested locally.
+- The GitHub App handoff uses a ten-minute one-time state, server-signed GitHub App JWT, installation-token exchange, and server-side repository listing. It cannot be exercised or claimed hosted until the operator registers the app and signing key.
+- `/sign-in`, `/app`, `/app/repositories`, repository policy, and `/app/billing` use the existing survey-sheet system. Sign-in uses authorization code with PKCE; access tokens stay in session storage. Unconfigured external paths render an explicit dependency state, not a stub success.
+- The $49/repository/month offer and paid deliverables are preserved. No checkout is exposed because the allowed recurring subscription and entitlement contract is not registered.
 
 On 2026-09-05, a fresh clone at the deployed implementation ran all nine exact claim commands, `npm test` (**11 Rust tests and 25 Playwright tests passed**), `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo package --allow-dirty`, and a fresh `cargo install` consumer demo/verify. The live suite also passed: `PLAYWRIGHT_BASE_URL=https://lsp-readiness-check.sociobot.in npx playwright test` (**25/25**). `verify-url.sh` reported HTTP 200, no console errors, `lang=en`, one H1, a main landmark, no missing image alt text or unlabeled buttons, and a 745 ms load in this run.
 
@@ -104,7 +116,7 @@ The exact commands are the entries in [claims.json](claims.json), all of the for
 
 ### M2 — authenticated private CI foundation and subscription
 
-**Status:** planned; not started. It does not become current until M1 is accepted.
+**Status:** current; code-complete for the product-owned foundation. Acceptance is pending CIAM, GitHub App, recurring subscription registration, hosted end-to-end QA, and independent review.
 
 **Scope:** add the minimal authenticated service required for a private repository to send a signed, source-free readiness result, configure the GitHub App/CI handoff, persist tenant-scoped policy and run metadata, and sell the stated subscription only through the Sociobot billing service.
 
@@ -119,6 +131,8 @@ The exact commands are the entries in [claims.json](claims.json), all of the for
 - The demo is still one click and cannot read/write production tenant data. It uses a separate ephemeral/demo namespace and makes no billing spend.
 
 **New claims to add only with implementation:** `tenant-isolation`, `packet-upload-no-source`, `private-ci-check`, `subscription-entitlement`, `export-delete`, and `rate-limit`. Each must have a recorded-fixture or approved test-mode integration test; a mock checkout alone is not billing proof.
+
+**Implemented M2 claims:** `tenant-isolation`, `packet-upload-no-source`, `export-delete`, and `rate-limit`. `subscription-registration-pending` tests the public price and unavailable state without claiming entitlement. `private-ci-check` and `subscription-entitlement` are intentionally absent until a real GitHub installation and authorized Sociobot subscription lifecycle pass.
 
 ### M3 — repository policies, PR gate, and readiness history
 
@@ -155,22 +169,22 @@ Static site at lsp-readiness-check.sociobot.in
 
 The Rust CLI is intentionally low-dependency and compiled as one binary. `src/lib.rs` holds supported-language detection, LSP initialize probing, formatter/test execution, inventory digesting, and Ed25519 signing. `src/main.rs` owns the CLI boundary and container invocation. The site is Vite/TypeScript with self-hosted assets and a service worker; it is not a backend.
 
-### M2/M3 architecture (planned, not present)
+### M2 service architecture (implemented; external registrations pending)
 
 ```text
 Customer-controlled CI -> local CLI -> explicit capability packet upload
                                     -> Rust/Axum product API
                                          -> SQLite at /data/lsp-readiness.db
-                                         -> Sociobot Entra CIAM (identity only)
-                                         -> GitHub App APIs/webhooks (installation and PR status)
-                                         -> Sociobot billing API (subscription entitlement only)
+                                         -> Sociobot Entra CIAM (code present; registration pending)
+                                         -> GitHub App APIs (code present; registration pending)
+                                         -> Sociobot billing API (registration and recurring contract pending)
 
 Vite static public site and demo remain separate from authenticated app/API.
 ```
 
-Use a boring Rust/Axum API only when M2 begins. Pin a single replica with its product-specific `/data` mount; no shared PostgreSQL is available or needed. Use structured JSON logs with request IDs and redaction, a health endpoint, bounded request sizes, per-IP and per-tenant rate limits, and migrations tested against a copy of a fixture database. No background task may fetch source; webhook retry and entitlement reconciliation jobs operate only on allowed metadata.
+The Rust/Axum API uses SQLite at `/data/lsp-readiness.db`. Its deployment contract pins a single replica with the product-specific `/data` mount; no shared PostgreSQL is used. It emits structured JSON logs with request IDs and no bodies or tokens, exposes `/healthz`, caps request bodies, and applies per-IP and per-organization limits. No task fetches source. Entitlement reconciliation is not implemented before the recurring billing contract exists.
 
-### Data model and ownership (planned)
+### Data model and ownership (M2 base implemented; M3 extends decisions/history)
 
 | Entity | Owner/scope | Allowed fields | Prohibited fields |
 | --- | --- | --- | --- |
@@ -191,12 +205,12 @@ Every persistence query takes `organization_id` from verified server-side identi
 | Docker or Podman plus a customer/team digest-pinned Linux x86-64 development image | Required for normal `check`; Docker validated on a controlled private helper | M1 | Customer images must contain the requested tools and a glibc version compatible with the installed CLI binary. Podman remains a customer-environment dependency, not a claimed M1 validation. |
 | Customer repository tools/tests | Customer-controlled | M1+ | The selected image contains tools/dependencies; the CLI must not install them or mutate source. |
 | Static-hosting deployment | Present at the live URL | M1 | Repaired route metadata must be deployed and independently reviewed. |
-| Sociobot Entra CIAM configuration | Not present in this product | M2 | Factory provisions the product integration; authenticated flows and tenant authorization tests pass. |
-| GitHub App registration, webhook endpoint, and authorized customer installation | Not present | M2/M3 | Factory/customer authorizes the app; server-only credentials, signature verification, and installation authorization are tested. |
-| Sociobot billing subscription registration/API contract | Not present; the supplied paid-unlock guide is one-time-license guidance, not proof of subscriptions | M2 | Factory registers the product and supplies the approved subscription contract/test mode. The product uses only Sociobot endpoints, never direct Dodo/payment credentials. |
-| Product API hosting and `/data` SQLite mount | Not needed today; absent | M2 | Fleet creates the product-specific service/mount and backup/restore is verified. |
+| Sociobot Entra CIAM configuration | Code complete; operator registration absent | M2 | Factory provisions the product integration; real sign-in and tenant authorization pass hosted QA. |
+| GitHub App registration, callback, and authorized customer installation | Code complete; app ID/signing key absent | M2/M3 | Factory/customer authorizes the app; a real installation and repository list pass hosted QA. Webhook PR status remains M3. |
+| Sociobot billing subscription registration/API contract | Absent; the one-time-license guide is not a subscription contract | M2 | Factory registers the recurring product and supplies the entitlement/test-mode contract. Checkout, return, webhook, and reconciliation must pass before `subscription-entitlement` is added. |
+| Product API hosting and `/data` SQLite mount | Deployment contract present in `.factory/deploy-m2.json` | M2 | Fleet deployment must show `/healthz`, restart persistence, one replica, and the product-specific `/data` mount. |
 
-No external dependency is an implemented capability today. Billing, messaging, HMRC access, sign-in, GitHub App access, and server persistence are not available in the current product and are not requested from a product worker.
+External registration is not treated as an implemented capability. CIAM sign-in, a real GitHub installation, and recurring subscription entitlement remain unavailable until the named operator work and hosted QA finish.
 
 ## 6. Risks, experiments, and sequencing
 

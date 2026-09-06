@@ -255,17 +255,22 @@ test('a new service worker removes the previous release cache', async ({ browser
   });
   await page.reload();
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  await expect.poll(() => page.evaluate(() => caches.keys())).toEqual(['lsp-readiness-v3']);
+  await expect.poll(() => page.evaluate(() => caches.keys())).toEqual(['lsp-readiness-v4']);
   await context.close();
 });
 
-test('the unavailable paid offer and billing endpoint are not presented', async ({ page }) => {
+test('@claim:subscription-registration-pending the monthly offer stays unavailable until external setup passes QA', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Private checks for each repository' })).toBeVisible();
+  await expect(page.locator('.pricing .price strong')).toHaveText('$49');
+  await expect(page.getByText('per repository each month')).toBeVisible();
+  await expect(page.getByText('Subscriptions are not open yet. CIAM, GitHub App, and billing registration must pass product QA first.')).toBeVisible();
   await expect(page.getByText('Buy private CI')).toHaveCount(0);
+  await expect(page.locator('a[href*="checkout"]')).toHaveCount(0);
   await expect(page.locator('a[href*="api.sociobot.in"]')).toHaveCount(0);
 });
 
-for (const route of ['/', '/demo', '/privacy', '/terms', '/does-not-exist']) {
+for (const route of ['/', '/demo', '/privacy', '/terms', '/sign-in', '/app', '/app/repositories', '/app/billing', '/does-not-exist']) {
   test(`route ${route} has one h1 and no serious accessibility findings`, async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
@@ -303,6 +308,17 @@ test('the demo and privacy page name the signed output a readiness report', asyn
   await page.goto('/privacy');
   await expect(page.locator('main')).toContainText('build a signed JSON readiness report');
   await expect(page.locator('main')).toContainText('signing key and readiness report');
+});
+
+test('private account routes explain setup dependencies without a fake sign-in or checkout', async ({ page }) => {
+  await page.goto('/sign-in');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in for private repository checks');
+  await expect(page.getByText('Sign-in is not open.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in with your team account' })).toBeDisabled();
+  await page.goto('/app/repositories');
+  await expect(page.getByText('Sign in is required.')).toBeVisible();
+  await page.goto('/app/billing');
+  await expect(page.getByText('Sign in is required.')).toBeVisible();
 });
 
 test('public routes serve their own social metadata before JavaScript and retain it after hydration', async ({ page, request }) => {
@@ -380,6 +396,10 @@ test('static hosting routes known pages through the app and returns a real 404 o
     expect.objectContaining({ route: '/demo', rewrite: '/demo/index.html' }),
     expect.objectContaining({ route: '/privacy', rewrite: '/privacy/index.html' }),
     expect.objectContaining({ route: '/terms', rewrite: '/terms/index.html' }),
+    expect.objectContaining({ route: '/sign-in', rewrite: '/sign-in/index.html' }),
+    expect.objectContaining({ route: '/app', rewrite: '/app/index.html' }),
+    expect.objectContaining({ route: '/app/repositories/*', rewrite: '/app/repositories/index.html' }),
+    expect.objectContaining({ route: '/app/billing', rewrite: '/app/billing/index.html' }),
   ]));
   expect(config.navigationFallback).toBeUndefined();
   expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html', statusCode: 404 });

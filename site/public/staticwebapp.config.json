@@ -3,6 +3,11 @@
     { "route": "/demo", "rewrite": "/demo/index.html" },
     { "route": "/privacy", "rewrite": "/privacy/index.html" },
     { "route": "/terms", "rewrite": "/terms/index.html" },
+    { "route": "/sign-in", "rewrite": "/sign-in/index.html" },
+    { "route": "/app", "rewrite": "/app/index.html" },
+    { "route": "/app/repositories", "rewrite": "/app/repositories/index.html" },
+    { "route": "/app/repositories/*", "rewrite": "/app/repositories/index.html" },
+    { "route": "/app/billing", "rewrite": "/app/billing/index.html" },
     { "route": "/404", "rewrite": "/404/index.html" },
     { "route": "/assets/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
     { "route": "/fonts/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
@@ -10,7 +15,7 @@
   ],
   "responseOverrides": { "404": { "rewrite": "/404.html", "statusCode": 404 } },
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; font-src 'self'; connect-src 'self' https://lsp-readiness-check-api.sociobot.in https://*.ciamlogin.com; object-src 'none'; base-uri 'self'; form-action 'self' https://*.ciamlogin.com; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()"
