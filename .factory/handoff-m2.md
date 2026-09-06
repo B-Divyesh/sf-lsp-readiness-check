@@ -7,6 +7,7 @@
 | Record | Value |
 | --- | --- |
 | Implementation SHA | `2428fcb82bd9af430b8bc98bb1d01421c5660eff` |
+| Verification-only SHA | `a011cc3e31863c8d56b01ce1b24701919bb3af7e` |
 | Accepted M1 implementation | `748178140e4f46e75bc596086f09da9bfd3605ba` |
 | Static deployment | `e6473d61-9be3-4376-8b48-ac8f6031ed1f` |
 | API image | `sociobotregistry.azurecr.io/sf-lsp-readiness-check-api@sha256:51d52ac1d08d5a1ab8c540f45445df3a5dc03daa8fea9fab4874b7f857bf81f3` |
@@ -47,10 +48,10 @@ The deployment wrapper completed the image, app update, DNS, and certificate wor
 
 ## Verification completed
 
-From a new clone of `2428fcb`:
+From a new clone of `2428fcb`, followed by a clean fast-forward to verification-only commit `a011cc3` for the expanded 64 KB regression:
 
 - `npm ci`: 23 packages, zero vulnerabilities.
-- Every one of the 14 commands in `.factory/claims.json`: passed separately.
+- Every one of the 14 commands in `.factory/claims.json`: passed separately. The only later claim-test change added an observable over-64-KB rejection to `packet-upload-no-source`; that exact command passed again at `a011cc3`.
 - `npm test`: 4 API unit tests, 11 CLI/library tests, and 38 Playwright tests passed.
 - `npm run build`: wrote `dist/site`; initial JavaScript was 30.45 KB (9.54 KB gzip) and CSS was 14.39 KB (4.11 KB gzip).
 - `cargo fmt --all --check`: passed.
