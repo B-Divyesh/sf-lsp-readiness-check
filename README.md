@@ -4,7 +4,7 @@ Verify code navigation, diagnostics, formatting, and tests before an agent edits
 
 LSP Readiness Check is a small Rust CLI for teams that onboard contributors into agent-assisted repositories. It detects repository languages and starts each available language server. It checks formatters, finds tests, and writes a signed JSON readiness report. The report signature makes tampering detectable (Ed25519).
 
-The M2 service foundation accepts signed, source-free report payloads for private repositories. It stores each team in a separate SQLite tenant on `/data`. Hosted sign-in, GitHub connection, and subscriptions remain unavailable until their operator registrations pass real product QA.
+The M2 service foundation accepts signed, source-free report payloads for private repositories. It stores team-scoped rows in the product SQLite database on `/data`. Hosted sign-in, GitHub connection, and subscriptions remain unavailable until their operator registrations pass real product QA.
 
 Live site: <https://lsp-readiness-check.sociobot.in>
 
@@ -117,8 +117,8 @@ Release builds ignore `LSP_READINESS_TEST_AUTH`. Production account routes stay 
 Back up or restore SQLite while the service is stopped:
 
 ```sh
-DATABASE_PATH=/data/lsp-readiness.db lsp-readiness-api backup /data/backups/lsp-readiness.db
-DATABASE_PATH=/data/lsp-readiness.db lsp-readiness-api restore /data/backups/lsp-readiness.db
+DATABASE_PATH=/data/lsp-readiness-v2.db lsp-readiness-api backup /data/backups/lsp-readiness.db
+DATABASE_PATH=/data/lsp-readiness-v2.db lsp-readiness-api restore /data/backups/lsp-readiness.db
 ```
 
 The researched private plan is $49 per repository each month for private CI checks, policy templates, and readiness history. It is not available for purchase yet. Sociobot recurring subscription registration and test-mode entitlement QA are operator dependencies; no one-time license flow is substituted.
@@ -128,16 +128,18 @@ The researched private plan is $49 per repository each month for private CI chec
 - Register the Sociobot Entra CIAM application and provide its issuer, audience, client ID, authorize URL, token URL, JWKS URL, and delegated scope.
 - Register the product GitHub App, callback URL, app ID, slug, and server-held signing key. Complete a real authorized installation.
 - Register the recurring Sociobot subscription at $49 per repository each month. Provide and test the subscription entitlement contract.
-- Deploy the API as `sf-lsp-readiness-check-api` with SQLite at `/data/lsp-readiness.db`, one replica, and the `/healthz` probe.
+
+The API is deployed as `sf-lsp-readiness-check-api` with SQLite at `/data/lsp-readiness-v2.db`, one replica, and the `/healthz` probe.
 
 Do not claim sign-in, GitHub installation, checkout, or entitlement works until those hosted paths pass product QA.
 
 ## Develop and verify
 
-Requirements: Rust, Node.js 20 or later, and the preinstalled Playwright Chromium browser.
+Requirements: Rust, Node.js 20 or later, and Chromium for Playwright.
 
 ```sh
 npm ci
+npx playwright install chromium
 npm test
 npm run build
 ```
@@ -148,12 +150,12 @@ npm run build
 
 The factory deploys the built static site from `dist/site/`. Build it with `npm run build`; deployment credentials and DNS remain factory-managed.
 
-The API image builds from `server/Dockerfile`. Its durable deployment contract is in `.factory/deploy-m2.json`. Do not run SQLite with multiple replicas or without the `/data` mount. SQLite uses rollback journaling because WAL locks are not reliable on Azure Files.
+The API image builds from `server/Dockerfile`. Its durable deployment contract is in `.factory/deploy-m2.json`. Do not run SQLite with multiple replicas or without the `/data` mount. SQLite uses rollback journaling and dot-file locks because WAL and default file locks are not reliable on Azure Files.
 
 Package readiness can be checked without publishing:
 
 ```sh
-cargo package --allow-dirty
+cargo package -p lsp-readiness-check --locked --allow-dirty
 ```
 
 ## Repository map

@@ -3,7 +3,7 @@
 **Plan date:** 2026-09-05
 
 **Accepted baseline:** M1 — **accepted** on 2026-09-05. The deployed M1 implementation is `748178140e4f46e75bc596086f09da9bfd3605ba`.
-**Current milestone:** M2 — implementation complete locally on 2026-09-06; hosted identity, GitHub App, and subscription acceptance remain pending named operator dependencies and independent QA.
+**Current milestone:** M2 — the product-owned API and account foundation were deployed on 2026-09-06; hosted identity, GitHub App, and subscription acceptance remain pending named operator dependencies and independent QA.
 **Next milestone:** M3 begins only after M2 receives independent acceptance.
 
 ## 1. Product contract
@@ -46,7 +46,7 @@ Out of scope throughout M1–M3: hosting language servers, installing or upgradi
 
 ### What M2 implements pending hosted acceptance
 
-- `server/` is a Rust/Axum service with reversible SQLite migrations for users, organizations, memberships, GitHub installations, repositories, policies, readiness runs, and subscriptions. Its deployment contract pins one replica and `/data/lsp-readiness.db`.
+- `server/` is a Rust/Axum service with reversible SQLite migrations for users, organizations, memberships, GitHub installations, repositories, policies, readiness runs, and subscriptions. Its deployment contract pins one replica and `/data/lsp-readiness-v2.db`, with rollback journaling and dot-file locks for the durable SMB mount.
 - CIAM access tokens are verified with RS256, exact issuer, audience, expiry, and configured JWKS. A first valid identity creates one organization and owner membership. Release builds cannot enable the local test identity mode.
 - Every repository, policy, run export, and delete query derives `organization_id` from verified server identity. Outcome tests create two organizations and reject cross-tenant repository IDs, policies, and run export.
 - Signed report ingestion has a 64 KB body limit, strict JSON schemas, Ed25519 verification, field length limits, source-digest validation, and rejection of extra source fields or secret-like evidence.
@@ -63,9 +63,9 @@ On 2026-09-05, a fresh clone at the deployed implementation ran all nine exact c
 | --- | --- | --- |
 | Disposable-container boundary | Fake-runtime tests assert the exact Docker/Podman flags, source mount, pinned-image validation, host signing, command traps, and source immutability. A real Docker matrix on the product-named private helper passed ready, non-ready, LSP-timeout, and runtime-error outcomes against digest-pinned images; all source checksums were unchanged and valid packets verified. | Docker is validated once against controlled Ubuntu 24.04 test images. Podman and arbitrary customer images remain customer-environment compatibility work; the image must be able to run the installed CLI binary. |
 | Bundled demo | The fixture executes and the packet verifies locally; the browser replay uses shipped sample data. | It proves only the trusted `northstar-api` sample. It does not prove an arbitrary customer repository, container image, test command, or policy. |
-| Signed packet | Packet integrity and tamper rejection are tested. | The product has no policy service or identity binding that says which team/key/repository may rely on a packet. |
-| Privacy boundary | Current CLI has no network client and the browser demo made same-origin requests only. | This is the current no-server product only. It does not establish the future account/history data boundary. |
-| Prior review verification | [review-2.md](review-2.md) was the current release gate and recorded FAIL. | Its three copy/metadata findings are repaired and reverified below; its earlier findings remain covered by the current claim and browser suites. |
+| Signed readiness report | Packet integrity, strict upload parsing, tenant-bound report tokens, and tamper rejection are tested. | A real GitHub installation and subscription entitlement are not configured; M3 policy decisions and PR status are not implemented. |
+| Privacy boundary | The CLI has no network client, the browser demo made same-origin requests only, and the private API rejects source-shaped fields and secret-like evidence. | CIAM and GitHub are not registered, so their hosted data paths still require real product QA. |
+| Prior review verification | [review-3.md](review-3.md) accepted M1 with zero findings and zero untested claims. | M2 has new independent acceptance work; the accepted M1 CLI and demo remain covered by the expanded suite. |
 
 ### M1 repair and acceptance record
 
@@ -161,10 +161,10 @@ User machine / customer CI
     -> selected Docker or Podman image (network disabled; read-only source; tmpfs copy)
     -> host-signed JSON capability packet
 
-Static site at lsp-readiness-check.sociobot.in
+Static free path at lsp-readiness-check.sociobot.in
   Vite/TypeScript -> bundled demo/replay + service worker
   localStorage key: demo:lsp-readiness-check
-  no product API, analytics, account, billing, or source upload
+  demo does not call the product API, analytics, identity, or billing
 ```
 
 The Rust CLI is intentionally low-dependency and compiled as one binary. `src/lib.rs` holds supported-language detection, LSP initialize probing, formatter/test execution, inventory digesting, and Ed25519 signing. `src/main.rs` owns the CLI boundary and container invocation. The site is Vite/TypeScript with self-hosted assets and a service worker; it is not a backend.
@@ -172,9 +172,9 @@ The Rust CLI is intentionally low-dependency and compiled as one binary. `src/li
 ### M2 service architecture (implemented; external registrations pending)
 
 ```text
-Customer-controlled CI -> local CLI -> explicit capability packet upload
+Customer-controlled CI -> local CLI -> explicit readiness report upload
                                     -> Rust/Axum product API
-                                         -> SQLite at /data/lsp-readiness.db
+                                         -> SQLite at /data/lsp-readiness-v2.db
                                          -> Sociobot Entra CIAM (code present; registration pending)
                                          -> GitHub App APIs (code present; registration pending)
                                          -> Sociobot billing API (registration and recurring contract pending)
@@ -182,7 +182,7 @@ Customer-controlled CI -> local CLI -> explicit capability packet upload
 Vite static public site and demo remain separate from authenticated app/API.
 ```
 
-The Rust/Axum API uses SQLite at `/data/lsp-readiness.db`. Its deployment contract pins a single replica with the product-specific `/data` mount; no shared PostgreSQL is used. It emits structured JSON logs with request IDs and no bodies or tokens, exposes `/healthz`, caps request bodies, and applies per-IP and per-organization limits. No task fetches source. Entitlement reconciliation is not implemented before the recurring billing contract exists.
+The Rust/Axum API uses SQLite at `/data/lsp-readiness-v2.db`. Its deployment contract pins a single replica with the product-specific `/data` mount; no shared PostgreSQL is used. SQLite uses rollback journaling and the `unix-dotfile` VFS because the mount is SMB-backed. It emits structured JSON logs with request IDs and no bodies or tokens, exposes `/healthz`, caps request bodies, and applies per-client and per-organization limits. No task fetches source. Entitlement reconciliation is not implemented before the recurring billing contract exists.
 
 ### Data model and ownership (M2 base implemented; M3 extends decisions/history)
 
@@ -208,7 +208,7 @@ Every persistence query takes `organization_id` from verified server-side identi
 | Sociobot Entra CIAM configuration | Code complete; operator registration absent | M2 | Factory provisions the product integration; real sign-in and tenant authorization pass hosted QA. |
 | GitHub App registration, callback, and authorized customer installation | Code complete; app ID/signing key absent | M2/M3 | Factory/customer authorizes the app; a real installation and repository list pass hosted QA. Webhook PR status remains M3. |
 | Sociobot billing subscription registration/API contract | Absent; the one-time-license guide is not a subscription contract | M2 | Factory registers the recurring product and supplies the entitlement/test-mode contract. Checkout, return, webhook, and reconciliation must pass before `subscription-entitlement` is added. |
-| Product API hosting and `/data` SQLite mount | Deployment contract present in `.factory/deploy-m2.json` | M2 | Fleet deployment must show `/healthz`, restart persistence, one replica, and the product-specific `/data` mount. |
+| Product API hosting and `/data` SQLite mount | Deployed; health, restart, rate-limit, and one-replica checks passed | M2 | Independent QA must confirm the recorded product-scoped deployment evidence. Real tenant-row persistence remains coupled to CIAM setup. |
 
 External registration is not treated as an implemented capability. CIAM sign-in, a real GitHub installation, and recurring subscription entitlement remain unavailable until the named operator work and hosted QA finish.
 
@@ -217,7 +217,7 @@ External registration is not treated as an implemented capability. CIAM sign-in,
 | Risk/unknown | Retirement experiment | Decision boundary |
 | --- | --- | --- |
 | Locked-down runtime arguments differ across Docker/Podman or break common development images | Docker passed the ready/non-ready/timeout/runtime-error matrix on controlled digest-pinned images. Run the same matrix on a customer Podman environment before claiming Podman runtime validation. | Docker normal checks are end-to-end validated; Podman remains unvalidated. |
-| Packet capability evidence can contain more data than intended | Use a sentinel in a fixture source/test output; assert upload allowlist excludes it and reject oversized evidence. | No M2 persistence until the test passes. |
+| Readiness report evidence can contain more data than intended | Use source/secret markers and extra source-shaped fields; assert strict upload rejection and absence from export. | The local outcome test passes; retain it for every report-schema change. |
 | CIAM/GitHub installation cannot provide safe repository-level authorization | Test two organizations, two installations, forged/replayed webhook, and ID guessing. | No private repository/history claim until all reject correctly. |
 | The $49 price cannot be provisioned through the allowed billing path | Obtain an approved Sociobot subscription test contract and run a test entitlement lifecycle. | Keep paid copy absent; do not substitute a one-time unlock or direct provider checkout. |
 | A repository owner will not trust a report without source upload | Pilot the local packet + CI artifact flow with 3–5 team repositories and measure successful onboarding PRs. | Revisit packet fields/policy UX only after privacy and isolation tests hold. |
