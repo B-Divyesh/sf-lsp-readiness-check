@@ -69,6 +69,7 @@ Live checks:
 - Playwright Axe checks found no serious or critical issue on every public/account route and the designed 404.
 - Lighthouse mobile: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.71 s, CLS 0.0007, total blocking time 0 ms.
 - Offline demo reload, old service-worker cache cleanup, keyboard/focus navigation, 44 px mobile targets, internal links, route titles/social metadata, legal pages, and deliberate HTTP 404 recovery all passed in the suite.
+- The live root HTML, hashed JavaScript, hashed CSS, and downloadable Linux CLI match the final local build byte for byte. The later handoff commit changes documentation only.
 
 Evidence is under `/work/.evidence/m2/`. Required public copies are `/work/.evidence/catalog-description.txt` and `/work/.evidence/billing-offer.json`.
 
